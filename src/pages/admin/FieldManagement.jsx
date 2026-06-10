@@ -1,12 +1,6 @@
 import Button from "../../components/ui/Button";
 import StatusBadge from "../../components/ui/StatusBadge";
-
-const fields = [
-  { id: 1, name: "Lapangan A", price: "Rp 80.000 / jam", status: "Aktif" },
-  { id: 2, name: "Lapangan B", price: "Rp 75.000 / jam", status: "Aktif" },
-  { id: 3, name: "Lapangan C", price: "Rp 90.000 / jam", status: "Aktif" },
-  { id: 4, name: "Lapangan VIP", price: "Rp 120.000 / jam", status: "Renovasi" },
-];
+import { fields } from "../../data/seeder";
 
 function FieldManagement() {
   return (
@@ -26,7 +20,7 @@ function FieldManagement() {
               </svg>
             </div>
             <h3 className="text-lg font-bold text-brand-dark">{field.name}</h3>
-            <p className="mb-2 text-sm font-semibold text-brand-gold">{field.price}</p>
+            <p className="mb-2 text-sm font-semibold text-brand-gold">Harga berdasarkan hari dan jam</p>
             <StatusBadge status={field.status} />
             <div className="mt-4 flex flex-wrap gap-2">
               <button className="rounded-md bg-blue-50 px-3 py-1.5 text-sm font-semibold text-blue-600 transition-all duration-200 hover:bg-blue-100">Edit</button>

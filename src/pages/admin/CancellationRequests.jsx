@@ -1,23 +1,15 @@
 import { useState } from "react";
 import StatusBadge from "../../components/ui/StatusBadge";
+import { cancellations, formatRupiah } from "../../data/seeder";
 
-const filters = ["Semua", "Menunggu Konfirmasi", "Selesai"];
-const cancellations = [
-  { id: "TRX-501", customer: "Guntur", field: "Lapangan A", schedule: "14 Mei 18:00", reason: "Tim tidak lengkap", status: "Menunggu Konfirmasi Pembatalan" },
-  { id: "TRX-502", customer: "Nadia", field: "Lapangan C", schedule: "14 Mei 20:00", reason: "Cuaca tidak mendukung", status: "Menunggu Konfirmasi Pembatalan" },
-  { id: "TRX-503", customer: "Bagas", field: "Lapangan B", schedule: "15 Mei 17:00", reason: "Salah pilih jadwal", status: "Disetujui" },
-  { id: "TRX-504", customer: "Sinta", field: "Lapangan D", schedule: "15 Mei 19:00", reason: "Keperluan pribadi", status: "Menunggu Konfirmasi Pembatalan" },
-  { id: "TRX-505", customer: "Adnan", field: "Lapangan E", schedule: "16 Mei 16:00", reason: "Cedera", status: "Ditolak" },
-];
+const filters = ["Semua", "Customer", "Admin"];
 
 function CancellationRequests() {
-  const [activeFilter, setActiveFilter] = useState("All");
+  const [activeFilter, setActiveFilter] = useState("Semua");
   const data =
     activeFilter === "Semua"
       ? cancellations
-      : activeFilter === "Menunggu Konfirmasi"
-        ? cancellations.filter((item) => item.status === "Menunggu Konfirmasi Pembatalan")
-        : cancellations.filter((item) => item.status !== "Menunggu Konfirmasi Pembatalan");
+      : cancellations.filter((item) => item.cancelledBy === activeFilter);
 
   return (
     <div className="space-y-4">
@@ -35,40 +27,53 @@ function CancellationRequests() {
         ))}
       </div>
 
-      <div className="overflow-hidden rounded-lg bg-white shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[980px] text-sm">
-            <thead className="bg-brand-dark text-brand-gold">
-              <tr>
-                <th className="px-4 py-3 text-left">ID Transaksi</th>
-                <th className="px-4 py-3 text-left">Pelanggan</th>
-                <th className="px-4 py-3 text-left">Lapangan</th>
-                <th className="px-4 py-3 text-left">Jadwal</th>
-                <th className="px-4 py-3 text-left">Alasan</th>
-                <th className="px-4 py-3 text-left">Status</th>
-                <th className="px-4 py-3 text-left">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map((item) => (
-                <tr key={item.id} className="border-b border-gray-100">
-                  <td className="px-4 py-3 font-semibold text-brand-dark">{item.id}</td>
-                  <td className="px-4 py-3">{item.customer}</td>
-                  <td className="px-4 py-3">{item.field}</td>
-                  <td className="px-4 py-3">{item.schedule}</td>
-                  <td className="px-4 py-3">{item.reason}</td>
-                  <td className="px-4 py-3"><StatusBadge status={item.status} /></td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-2">
-                      <button className="rounded bg-green-600 px-2.5 py-1.5 text-xs font-semibold text-white transition-all duration-200 hover:bg-green-700">Setujui Pembatalan</button>
-                      <button className="rounded bg-red-600 px-2.5 py-1.5 text-xs font-semibold text-white transition-all duration-200 hover:bg-red-700">Tolak Pembatalan</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      <div className="space-y-4">
+        {data.map((item) => (
+          <div key={item.bookingCode} className="rounded-xl bg-white p-5 shadow-sm">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-bold text-brand-gold">{item.bookingCode}</p>
+                <p className="text-sm text-gray-500">{item.customerName}</p>
+              </div>
+              <StatusBadge status={item.refundStatus} />
+            </div>
+
+            <div className="mt-4 grid gap-4 lg:grid-cols-2">
+              <div className="rounded-xl border border-gray-200 p-4">
+                <p className="text-sm text-gray-500">Lapangan</p>
+                <p className="mt-2 font-semibold text-brand-dark">{item.fieldName}</p>
+                <p className="mt-2 text-sm text-gray-500">{item.date}</p>
+                <p className="text-sm text-gray-500">{item.startTime} - {item.endTime}</p>
+              </div>
+              <div className="rounded-xl border border-gray-200 p-4">
+                <p className="text-sm text-gray-500">Total Harga</p>
+                <p className="mt-2 font-semibold text-brand-gold">{formatRupiah(item.totalPrice)}</p>
+                <p className="mt-3 text-sm text-gray-500">DP</p>
+                <p className="font-semibold text-brand-dark">{formatRupiah(item.downPayment)}</p>
+                <p className="mt-3 text-sm text-gray-500">Sisa Bayar</p>
+                <p className="font-semibold text-brand-dark">{formatRupiah(item.totalPrice - item.downPayment)}</p>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-xl border border-gray-200 p-4">
+              <p className="text-sm text-gray-500">Alasan Pembatalan</p>
+              <p className="mt-2 font-semibold text-brand-dark">{item.reason}</p>
+              <p className="mt-3 text-sm text-gray-500">Dibatalkan oleh: {item.cancelledBy}</p>
+              <p className="text-sm text-gray-500">Waktu pembatalan: {item.cancelledAt}</p>
+            </div>
+
+            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              Refund tidak tersedia. DP hangus jika booking dibatalkan.
+            </div>
+
+            {item.adminNote && (
+              <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+                <p className="font-semibold text-brand-dark">Catatan Admin</p>
+                <p className="mt-2">{item.adminNote}</p>
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );

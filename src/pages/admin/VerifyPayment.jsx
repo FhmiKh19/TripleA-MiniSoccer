@@ -1,22 +1,19 @@
 import { useState } from "react";
 import Button from "../../components/ui/Button";
+import StatusBadge from "../../components/ui/StatusBadge";
+import { formatRupiah, payments } from "../../data/seeder";
 
-const tabs = ["Semua", "Menunggu Verifikasi", "Disetujui", "Ditolak"];
-const payments = [
-  { id: "TRX-3001", customer: "Budi", field: "Lapangan A", slot: "13 Mei, 18:00-20:00", amount: "Rp 360.000", status: "Menunggu Verifikasi" },
-  { id: "TRX-3002", customer: "Raka", field: "Lapangan B", slot: "13 Mei, 19:00-20:00", amount: "Rp 200.000", status: "Disetujui" },
-  { id: "TRX-3003", customer: "Nina", field: "Lapangan C", slot: "14 Mei, 17:00-19:00", amount: "Rp 340.000", status: "Ditolak" },
-  { id: "TRX-3004", customer: "Rafi", field: "Lapangan D", slot: "14 Mei, 20:00-21:00", amount: "Rp 190.000", status: "Menunggu Verifikasi" },
-  { id: "TRX-3005", customer: "Sari", field: "Lapangan A", slot: "15 Mei, 16:00-18:00", amount: "Rp 360.000", status: "Disetujui" },
-  { id: "TRX-3006", customer: "Iqbal", field: "Lapangan F", slot: "15 Mei, 21:00-22:00", amount: "Rp 160.000", status: "Ditolak" },
-];
+const tabs = ["Semua", "Menunggu Verifikasi DP", "DP Sudah Dibayar", "Lunas", "Ditolak"];
 
 function VerifyPayment() {
-  const [activeTab, setActiveTab] = useState("All");
+  const [activeTab, setActiveTab] = useState("Semua");
   const [openModal, setOpenModal] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState(null);
 
   const filteredPayments =
-    activeTab === "Semua" ? payments : payments.filter((payment) => payment.status === activeTab);
+    activeTab === "Semua"
+      ? payments
+      : payments.filter((payment) => payment.paymentStatus === activeTab);
 
   return (
     <div className="space-y-4">
@@ -37,52 +34,84 @@ function VerifyPayment() {
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         {filteredPayments.map((payment) => (
           <div key={payment.id} className="relative rounded-xl bg-white p-4 shadow-sm">
-            {(payment.status === "Disetujui" || payment.status === "Ditolak") && (
-              <span
-                className={`absolute right-3 top-3 rounded px-2 py-1 text-xs font-bold ${
-                  payment.status === "Disetujui" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                }`}
-              >
-                {payment.status}
-              </span>
-            )}
-            <div className="flex flex-col gap-4 sm:flex-row">
-              <button
-                onClick={() => setOpenModal(true)}
-                className="flex h-28 w-full items-center justify-center rounded-lg bg-gray-100 text-gray-400 transition-all duration-200 hover:bg-gray-200 sm:w-40"
-              >
-                <svg className="h-10 w-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4-4 4 4 8-8" />
-                </svg>
-              </button>
-              <div className="flex-1 space-y-1">
-                <p className="font-bold text-brand-dark">{payment.id}</p>
-                <p className="text-sm text-gray-600">Pelanggan: {payment.customer}</p>
-                <p className="text-sm text-gray-600">Lapangan: {payment.field}</p>
-                <p className="text-sm text-gray-600">Slot Waktu: {payment.slot}</p>
-                <p className="font-bold text-brand-gold">{payment.amount}</p>
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-bold text-brand-gold">{payment.bookingCode}</p>
+                <p className="text-sm text-gray-600">Verifikasi DP</p>
+              </div>
+              <StatusBadge status={payment.paymentStatus} />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="rounded-xl border border-gray-200 p-4">
+                <p className="text-sm text-gray-500">Nama Customer</p>
+                <p className="mt-2 font-semibold text-brand-dark">{payment.customerName}</p>
+                <p className="text-sm text-gray-500">Lapangan: {payment.fieldName}</p>
+                <p className="text-sm text-gray-500">{payment.date}</p>
+                <p className="text-sm text-gray-500">{payment.startTime} - {payment.endTime}</p>
+              </div>
+              <div className="rounded-xl border border-gray-200 p-4">
+                <p className="text-sm text-gray-500">Metode Pembayaran</p>
+                <p className="mt-2 font-semibold text-brand-dark">{payment.paymentMethod}</p>
+                <p className="mt-4 text-sm text-gray-500">Bank: {payment.bankName}</p>
+                <p className="text-sm text-gray-500">Akun: {payment.accountName}</p>
               </div>
             </div>
-            <div className="mt-4 flex gap-2">
-              <Button label="Setujui" variant="success" className="w-full justify-center" />
-              <Button label="Tolak" variant="danger" className="w-full justify-center" />
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-xl border border-gray-200 p-4">
+                <p className="text-sm text-gray-500">Total Harga</p>
+                <p className="mt-2 font-semibold text-brand-gold">{formatRupiah(payment.totalPrice)}</p>
+              </div>
+              <div className="rounded-xl border border-gray-200 p-4">
+                <p className="text-sm text-gray-500">DP 50%</p>
+                <p className="mt-2 font-semibold text-brand-gold">{formatRupiah(payment.downPayment)}</p>
+              </div>
+              <div className="rounded-xl border border-gray-200 p-4">
+                <p className="text-sm text-gray-500">Sisa Bayar</p>
+                <p className="mt-2 font-semibold text-brand-gold">{formatRupiah(payment.remainingPayment)}</p>
+              </div>
             </div>
+
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedPayment(payment);
+                  setOpenModal(true);
+                }}
+                className="rounded-lg border border-brand-dark px-4 py-2 text-sm font-semibold text-brand-dark transition-all duration-200 hover:bg-brand-gold hover:text-brand-dark"
+              >
+                Lihat Bukti DP
+              </button>
+              <button className="rounded-lg bg-brand-gold px-4 py-2 text-sm font-semibold text-brand-dark transition-all duration-200 hover:bg-brand-goldLight">
+                Verifikasi DP
+              </button>
+            </div>
+
+            {payment.adminNote && (
+              <p className="mt-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+                Catatan Admin: {payment.adminNote}
+              </p>
+            )}
           </div>
         ))}
       </div>
 
-      {openModal && (
+      {openModal && selectedPayment && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="w-full max-w-2xl rounded-xl bg-white p-5">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-brand-dark">Bukti Pembayaran</h3>
+              <h3 className="text-lg font-bold text-brand-dark">Bukti DP - {selectedPayment.bookingCode}</h3>
               <button onClick={() => setOpenModal(false)} className="rounded bg-red-50 px-3 py-1 text-red-600">
                 Tutup
               </button>
             </div>
-            <div className="flex h-80 items-center justify-center rounded-lg bg-gray-100 text-gray-400">
-              <span className="text-lg font-semibold">Placeholder Bukti Pembayaran</span>
-            </div>
+            <img
+              src={selectedPayment.proofImage}
+              alt="Bukti Pembayaran"
+              className="h-80 w-full rounded-lg object-cover"
+            />
           </div>
         </div>
       )}

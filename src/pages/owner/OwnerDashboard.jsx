@@ -1,86 +1,90 @@
 import StatusBadge from "../../components/ui/StatusBadge";
+import { formatRupiah, ownerMonths, ownerStats, ownerTransactions } from "../../data/seeder";
 
-const months = [
-  { month: "Jan", value: 40 },
-  { month: "Feb", value: 65 },
-  { month: "Mar", value: 50 },
-  { month: "Apr", value: 75 },
-  { month: "May", value: 82 },
-  { month: "Jun", value: 60 },
-];
-
-const transactions = [
-  { id: "TRX-9001", customer: "Rudi", field: "Field A", date: "10 May 2026", duration: "2h", amount: "Rp 360.000", status: "Approved" },
-  { id: "TRX-9002", customer: "Dewi", field: "Field C", date: "10 May 2026", duration: "1h", amount: "Rp 170.000", status: "Approved" },
-  { id: "TRX-9003", customer: "Tono", field: "Field B", date: "11 May 2026", duration: "2h", amount: "Rp 400.000", status: "Approved" },
-  { id: "TRX-9004", customer: "Rina", field: "Field D", date: "11 May 2026", duration: "1h", amount: "Rp 190.000", status: "Approved" },
-  { id: "TRX-9005", customer: "Dian", field: "Field A", date: "12 May 2026", duration: "2h", amount: "Rp 360.000", status: "Approved" },
-];
+const ownerIconMap = {
+  money: (
+    <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.1 0-2 .9-2 2v4h4V10c0-1.1-.9-2-2-2z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 18v-2a2 2 0 012-2h12a2 2 0 012 2v2" />
+    </svg>
+  ),
+  calendar: (
+    <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 2v3m8-3v3M4 9h16M5 4h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1z" />
+    </svg>
+  ),
+  check: (
+    <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+    </svg>
+  ),
+  x: (
+    <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  ),
+};
 
 function OwnerDashboard() {
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <div className="rounded-xl bg-white p-5 shadow-sm">
-          <p className="text-sm text-gray-500">Total Revenue This Month</p>
-          <h2 className="mt-2 text-3xl font-extrabold text-brand-gold">Rp 48.500.000</h2>
-        </div>
-        <div className="rounded-xl bg-brand-dark p-5 shadow-sm">
-          <p className="text-sm text-gray-300">Successful Transactions</p>
-          <h2 className="mt-2 text-3xl font-extrabold text-white">247</h2>
-        </div>
-        <div className="rounded-xl bg-brand-dark p-5 shadow-sm">
-          <p className="text-sm text-gray-300">Total Hours Rented</p>
-          <h2 className="mt-2 text-3xl font-extrabold text-white">562 Hours</h2>
-        </div>
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
+        {ownerStats.map((stat) => (
+          <div key={stat.id} className="rounded-xl bg-white p-5 shadow-sm">
+            <div className="mb-3 flex items-center gap-3">
+              <div className="text-brand-gold">{ownerIconMap[stat.icon] || ownerIconMap.money}</div>
+              <h3 className="text-sm font-medium text-gray-500">{stat.title}</h3>
+            </div>
+            <p className="text-3xl font-extrabold text-gray-900">
+              {stat.title.toLowerCase().includes("pendapatan") ? formatRupiah(stat.value) : stat.value}
+            </p>
+            <p className="mt-2 text-sm text-gray-500">{stat.description}</p>
+          </div>
+        ))}
       </div>
 
-      <div className="rounded-xl bg-brand-dark p-5 shadow-sm">
-        <h3 className="mb-4 text-lg font-bold text-white">Revenue Trend (Last 6 Months)</h3>
-        <div className="flex gap-4">
-          <div className="flex flex-col justify-between text-xs text-gray-300">
-            <span>90M</span>
-            <span>70M</span>
-            <span>50M</span>
-            <span>30M</span>
-            <span>10M</span>
-          </div>
-          <div className="flex h-56 flex-1 items-end justify-around rounded-lg bg-[#2a2112] p-4">
-            {months.map((item) => (
-              <div key={item.month} className="flex flex-col items-center gap-2">
-                <div className="w-8 rounded-t bg-brand-gold transition-all duration-200 hover:bg-brand-goldLight" style={{ height: `${item.value * 2}px` }} />
-                <span className="text-xs text-gray-300">{item.month}</span>
-              </div>
-            ))}
-          </div>
+      <div className="rounded-xl bg-white p-5 shadow-sm">
+        <h3 className="mb-4 text-lg font-bold text-brand-dark">Pendapatan Bulanan</h3>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {ownerMonths.map((item) => (
+            <div key={item.id} className="rounded-xl border border-gray-200 p-4">
+              <p className="text-sm text-gray-500">{item.month}</p>
+              <p className="mt-2 text-xl font-bold text-brand-dark">{formatRupiah(item.income)}</p>
+              <p className="mt-1 text-sm text-gray-500">Booking: {item.totalBooking}</p>
+            </div>
+          ))}
         </div>
       </div>
 
       <div className="overflow-hidden rounded-lg bg-white shadow-sm">
-        <h3 className="border-b border-gray-100 px-5 py-4 text-lg font-bold text-brand-dark">Recent Successful Transactions</h3>
+        <h3 className="border-b border-gray-100 px-5 py-4 text-lg font-bold text-brand-dark">Transaksi Owner</h3>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] text-sm">
+          <table className="w-full min-w-[1000px] text-sm">
             <thead className="bg-brand-dark text-brand-gold">
               <tr>
-                <th className="px-4 py-3 text-left">Transaction ID</th>
+                <th className="px-4 py-3 text-left">Booking Code</th>
                 <th className="px-4 py-3 text-left">Customer</th>
                 <th className="px-4 py-3 text-left">Field</th>
                 <th className="px-4 py-3 text-left">Date</th>
-                <th className="px-4 py-3 text-left">Duration</th>
-                <th className="px-4 py-3 text-left">Amount</th>
+                <th className="px-4 py-3 text-left">Time</th>
+                <th className="px-4 py-3 text-left">Total</th>
+                <th className="px-4 py-3 text-left">DP</th>
+                <th className="px-4 py-3 text-left">Income Received</th>
                 <th className="px-4 py-3 text-left">Status</th>
               </tr>
             </thead>
             <tbody>
-              {transactions.map((row) => (
-                <tr key={row.id} className="border-b border-gray-100">
-                  <td className="px-4 py-3 font-semibold text-brand-dark">{row.id}</td>
-                  <td className="px-4 py-3">{row.customer}</td>
-                  <td className="px-4 py-3">{row.field}</td>
-                  <td className="px-4 py-3">{row.date}</td>
-                  <td className="px-4 py-3">{row.duration}</td>
-                  <td className="px-4 py-3 font-semibold text-brand-gold">{row.amount}</td>
-                  <td className="px-4 py-3"><StatusBadge status={row.status} /></td>
+              {ownerTransactions.map((transaction) => (
+                <tr key={transaction.bookingCode} className="border-b border-gray-100">
+                  <td className="px-4 py-3 font-semibold text-brand-dark">{transaction.bookingCode}</td>
+                  <td className="px-4 py-3">{transaction.customerName}</td>
+                  <td className="px-4 py-3">{transaction.fieldName}</td>
+                  <td className="px-4 py-3">{transaction.date}</td>
+                  <td className="px-4 py-3">{transaction.time}</td>
+                  <td className="px-4 py-3 text-brand-gold">{formatRupiah(transaction.totalPrice)}</td>
+                  <td className="px-4 py-3">{formatRupiah(transaction.downPayment)}</td>
+                  <td className="px-4 py-3">{formatRupiah(transaction.incomeReceived)}</td>
+                  <td className="px-4 py-3"><StatusBadge status={transaction.paymentStatus} /></td>
                 </tr>
               ))}
             </tbody>
