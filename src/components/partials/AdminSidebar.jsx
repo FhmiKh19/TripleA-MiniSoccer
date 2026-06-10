@@ -1,4 +1,5 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 const adminNav = [
   {
@@ -49,14 +50,22 @@ const adminNav = [
 ];
 
 function AdminSidebar({ onClose }) {
+  const { logout, currentUser } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
   return (
-    <aside className="flex h-full w-[260px] flex-col bg-brand-dark text-white">
-      <div className="border-b border-[#2d2416] px-6 py-6">
+    <aside className="flex h-full w-[260px] flex-col border-r border-brand-border bg-brand-surface text-white">
+      <div className="border-b border-brand-border px-6 py-6">
         <h2 className="text-2xl font-extrabold text-brand-gold">3A</h2>
-        <p className="text-sm text-gray-300">Triple A Minisoccer</p>
+        <p className="text-sm text-gray-400">Triple A Minisoccer</p>
       </div>
 
-      <nav className="flex-1 space-y-2 px-3 py-5">
+      <nav className="flex-1 space-y-1 px-3 py-5">
         {adminNav.map((item) => (
           <NavLink
             key={item.label}
@@ -64,10 +73,10 @@ function AdminSidebar({ onClose }) {
             end={item.to === "/admin"}
             onClick={onClose}
             className={({ isActive }) =>
-              `flex items-center gap-3 border-l-4 px-4 py-3 text-sm font-medium transition-all duration-200 ${
+              `flex items-center gap-3 rounded-lg border-l-4 px-4 py-3 text-sm font-medium transition-all duration-200 ${
                 isActive
-                  ? "border-brand-gold bg-[#c89b001a] text-brand-gold"
-                  : "border-transparent text-gray-200 hover:bg-[#2a2112]"
+                  ? "border-brand-gold bg-brand-gold/10 text-brand-gold"
+                  : "border-transparent text-gray-400 hover:bg-brand-card hover:text-white"
               }`
             }
           >
@@ -77,17 +86,23 @@ function AdminSidebar({ onClose }) {
         ))}
       </nav>
 
-      <div className="border-t border-[#2d2416] px-4 py-4">
-        <div className="mb-3 flex items-center gap-3 rounded-lg bg-[#2a2112] p-3">
+      <div className="border-t border-brand-border px-4 py-4">
+        <div className="mb-3 flex items-center gap-3 rounded-xl bg-brand-card p-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-gold font-bold text-brand-dark">
-            AD
+            {currentUser?.name?.charAt(0).toUpperCase() || "A"}
           </div>
           <div>
-            <p className="text-sm font-semibold">Admin Utama</p>
-            <span className="rounded-full bg-brand-gold px-2 py-0.5 text-xs font-semibold text-brand-dark">Admin</span>
+            <p className="text-sm font-semibold">{currentUser?.name || "Admin"}</p>
+            <span className="rounded-full bg-brand-gold/20 px-2 py-0.5 text-xs font-semibold text-brand-gold">
+              Admin
+            </span>
           </div>
         </div>
-        <button className="w-full rounded-lg border border-red-500 px-4 py-2 text-sm font-semibold text-red-300 transition-all duration-200 hover:bg-red-600 hover:text-white">
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="w-full rounded-lg border border-red-500/50 px-4 py-2 text-sm font-semibold text-red-400 transition-all duration-200 hover:bg-red-500/20"
+        >
           Keluar
         </button>
       </div>

@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import ProtectedRoute from "./components/ProtectedRoute";
 import AdminLayout from "./components/layout/AdminLayout";
 import OwnerLayout from "./components/layout/OwnerLayout";
 import CustomerLayout from "./components/layout/CustomerLayout";
@@ -17,6 +18,8 @@ import BookingForm from "./pages/customer/BookingForm";
 import UploadPayment from "./pages/customer/UploadPayment";
 import BookingHistory from "./pages/customer/BookingHistory";
 import CancelBooking from "./pages/customer/CancelBooking";
+import PaymentMock from "./pages/customer/PaymentMock";
+
 
 function App() {
   return (
@@ -25,21 +28,153 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
-      <Route path="/admin" element={<AdminLayout pageTitle="Dasbor Admin"><Dashboard /></AdminLayout>} />
-      <Route path="/admin/fields" element={<AdminLayout pageTitle="Kelola Lapangan"><FieldManagement /></AdminLayout>} />
-      <Route path="/admin/schedule" element={<AdminLayout pageTitle="Jadwal Booking"><BookingSchedule /></AdminLayout>} />
-      <Route path="/admin/verify-payment" element={<AdminLayout pageTitle="Verifikasi Pembayaran"><VerifyPayment /></AdminLayout>} />
-      <Route path="/admin/cancellations" element={<AdminLayout pageTitle="Pengajuan Pembatalan"><CancellationRequests /></AdminLayout>} />
+      {/* Admin routes */}
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <AdminLayout pageTitle="Dasbor Admin">
+              <Dashboard />
+            </AdminLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/fields"
+        element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <AdminLayout pageTitle="Kelola Lapangan">
+              <FieldManagement />
+            </AdminLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/schedule"
+        element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <AdminLayout pageTitle="Jadwal Booking">
+              <BookingSchedule />
+            </AdminLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/verify-payment"
+        element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <AdminLayout pageTitle="Verifikasi Pembayaran">
+              <VerifyPayment />
+            </AdminLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/cancellations"
+        element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <AdminLayout pageTitle="Pengajuan Pembatalan">
+              <CancellationRequests />
+            </AdminLayout>
+          </ProtectedRoute>
+        }
+      />
 
-      <Route path="/owner" element={<OwnerLayout pageTitle="Dasbor Pemilik"><OwnerDashboard /></OwnerLayout>} />
-      <Route path="/owner/reports" element={<OwnerLayout pageTitle="Laporan Transaksi"><TransactionReports /></OwnerLayout>} />
+      {/* Owner routes */}
+      <Route
+        path="/owner"
+        element={
+          <ProtectedRoute allowedRoles={["owner"]}>
+            <OwnerLayout pageTitle="Dasbor Pemilik">
+              <OwnerDashboard />
+            </OwnerLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/owner/reports"
+        element={
+          <ProtectedRoute allowedRoles={["owner"]}>
+            <OwnerLayout pageTitle="Laporan Transaksi">
+              <TransactionReports />
+            </OwnerLayout>
+          </ProtectedRoute>
+        }
+      />
 
-      <Route path="/customer" element={<CustomerLayout><Home /></CustomerLayout>} />
-      <Route path="/customer/field-detail" element={<CustomerLayout><FieldDetail /></CustomerLayout>} />
-      <Route path="/customer/booking-form" element={<CustomerLayout><BookingForm /></CustomerLayout>} />
-      <Route path="/customer/upload-payment" element={<CustomerLayout><UploadPayment /></CustomerLayout>} />
-      <Route path="/customer/history" element={<CustomerLayout><BookingHistory /></CustomerLayout>} />
-      <Route path="/customer/cancel-booking" element={<CustomerLayout><CancelBooking /></CustomerLayout>} />
+      {/* Customer routes */}
+      <Route
+        path="/customer"
+        element={
+          <ProtectedRoute allowedRoles={["customer"]}>
+            <CustomerLayout>
+              <Home />
+            </CustomerLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/customer/field-detail"
+        element={
+          <ProtectedRoute allowedRoles={["customer"]}>
+            <CustomerLayout>
+              <FieldDetail />
+            </CustomerLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/customer/booking-form"
+        element={
+          <ProtectedRoute allowedRoles={["customer"]}>
+            <CustomerLayout>
+              <BookingForm />
+            </CustomerLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/customer/upload-payment"
+        element={
+          <ProtectedRoute allowedRoles={["customer"]}>
+            <CustomerLayout>
+              <UploadPayment />
+            </CustomerLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/customer/history"
+        element={
+          <ProtectedRoute allowedRoles={["customer"]}>
+            <CustomerLayout>
+              <BookingHistory />
+            </CustomerLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/customer/cancel-booking"
+        element={
+          <ProtectedRoute allowedRoles={["customer"]}>
+            <CustomerLayout>
+              <CancelBooking />
+            </CustomerLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/customer/payment-mock"
+        element={
+          <ProtectedRoute allowedRoles={["customer"]}>
+            <CustomerLayout>
+              <PaymentMock />
+            </CustomerLayout>
+          </ProtectedRoute>
+        }
+      />
+
 
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>

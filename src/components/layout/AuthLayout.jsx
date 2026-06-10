@@ -15,7 +15,7 @@ function AuthLayout({ children }) {
             <p className="mt-2 text-sm text-gray-300">Pesan lapangan kapan saja, di mana saja.</p>
           </div>
         </div>
-        <div className="flex items-center justify-center p-8">{children}</div>
+        <div className="flex items-center justify-center bg-white p-8 text-gray-900">{children}</div>
       </div>
     </div>
   );

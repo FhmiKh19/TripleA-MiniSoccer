@@ -1,30 +1,118 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 import AuthLayout from "../../components/layout/AuthLayout";
+import AuthField from "../../components/ui/AuthField";
 
 function Login() {
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = () => {
+    if (!email || !password) {
+      setError("Email dan kata sandi harus diisi.");
+      return;
+    }
+
+    setError("");
+    setLoading(true);
+    setTimeout(() => {
+      const result = login(email, password);
+      setLoading(false);
+
+      if (result.success) {
+        if (result.role === "admin") navigate("/admin");
+        else if (result.role === "owner") navigate("/owner");
+        else navigate("/customer");
+      } else {
+        setError(result.message);
+      }
+    }, 500);
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter") handleLogin();
+  };
+
   return (
     <AuthLayout>
       <div className="w-full max-w-sm">
-        <p className="mb-8 text-center text-sm font-semibold text-brand-dark">⚽ Triple A Minisoccer</p>
-        <h1 className="text-center text-3xl font-bold text-brand-dark">Selamat Datang Kembali!</h1>
-        <p className="mb-8 mt-1 text-center text-sm text-gray-500">Masukkan detail akun Anda di bawah ini.</p>
-        <div className="space-y-5">
-          <div><label className="mb-1 block text-xs text-gray-500">Email</label><input placeholder="contoh@email.com" 
-          className="w-full rounded-none border-0 border-b-2 border-gray-300 pb-2 
-          text-sm outline-none transition-colors focus:border-brand-gold focus:ring-0" /></div>
-          <div><label className="mb-1 block text-xs text-gray-500">Kata Sandi</label><div className="flex items-center 
-          border-b-2 border-gray-300"><input type="password" placeholder="••••••••" 
-          className="w-full border-0 pb-2 text-sm outline-none focus:ring-0" /><button className="pb-2">👁️</button></div></div>
-          <div className="flex items-center justify-between text-xs">
-            <label className="text-gray-500"><input type="checkbox" className="mr-2" />Ingat saya</label>
-            <a className="text-brand-gold hover:underline">Lupa kata sandi?</a>
+        <p className="mb-8 text-center text-sm font-semibold text-brand-dark">
+          ⚽ Triple A Minisoccer
+        </p>
+        <h1 className="text-center text-3xl font-bold text-brand-dark">
+          Selamat Datang Kembali!
+        </h1>
+        <p className="mb-8 mt-1 text-center text-sm text-gray-500">
+          Masukkan detail akun Anda di bawah ini.
+        </p>
+
+        {error && (
+          <div className="mb-5 rounded-lg bg-red-100 p-3">
+            <p className="text-xs text-red-600">{error}</p>
           </div>
-          <button className="w-full rounded-full bg-brand-dark py-3 text-sm font-semibold text-white transition-all 
-          duration-300 hover:bg-brand-gold hover:text-brand-dark">Masuk</button>
-          <button className="w-full rounded-full border border-gray-200 bg-gray-100 py-3 text-sm font-semibold text-brand-dark 
-          transition-all duration-200 hover:border-brand-gold">G Daftar dengan Google</button>
-          <p className="mt-6 text-center text-xs text-gray-500">Belum punya akun? <Link to="/register" 
-          className="font-semibold text-brand-gold hover:underline">Daftar</Link></p>
+        )}
+
+        <div className="mb-6 rounded-lg bg-blue-50 p-3">
+          <p className="mb-2 text-xs font-semibold text-blue-900">Akun Demo:</p>
+          <p className="text-xs text-blue-800">Admin: ikhsan@triplea.com / admin123</p>
+          <p className="text-xs text-blue-800">Owner: aji@triplea.com / owner123</p>
+          <p className="text-xs text-blue-800">Customer: fahmi@gmail.com / user123</p>
+        </div>
+
+        <div className="space-y-5">
+          <AuthField
+            label="Email"
+            type="email"
+            placeholder="contoh@email.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            onKeyDown={handleKeyPress}
+            autoComplete="email"
+          />
+
+          <AuthField
+            label="Kata Sandi"
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={handleKeyPress}
+            autoComplete="current-password"
+            showToggle
+            isVisible={showPassword}
+            onToggle={() => setShowPassword((v) => !v)}
+          />
+
+          <div className="flex items-center justify-between text-xs">
+            <label className="text-gray-500">
+              <input type="checkbox" className="mr-2" />
+              Ingat saya
+            </label>
+            <a href="#" className="text-brand-gold hover:underline">
+              Lupa kata sandi?
+            </a>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleLogin}
+            disabled={loading}
+            className="w-full rounded-full bg-brand-dark py-3 text-sm font-semibold text-white transition-all duration-300 hover:bg-brand-gold hover:text-brand-dark disabled:opacity-50"
+          >
+            {loading ? "Memproses..." : "Masuk"}
+          </button>
+
+          <p className="mt-6 text-center text-xs text-gray-500">
+            Belum punya akun?{" "}
+            <Link to="/register" className="font-semibold text-brand-gold hover:underline">
+              Daftar
+            </Link>
+          </p>
         </div>
       </div>
     </AuthLayout>

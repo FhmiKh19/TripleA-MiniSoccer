@@ -1,29 +1,80 @@
-import { useState } from "react";
-import Button from "../../components/ui/Button";
+import { useMemo, useState } from "react";
+import PageHeader from "../../components/ui/PageHeader";
+import SearchBar from "../../components/ui/SearchBar";
 import StatusBadge from "../../components/ui/StatusBadge";
-import { formatRupiah, payments } from "../../data/seeder";
+import { useAppData } from "../../context/AppDataContext";
+import { formatRupiah } from "../../data/seeder";
 
-const tabs = ["Semua", "Menunggu Verifikasi DP", "DP Sudah Dibayar", "Lunas", "Ditolak"];
+const tabs = ["Semua", "Menunggu Verifikasi DP", "DP Sudah Dibayar", "Lunas"];
 
 function VerifyPayment() {
-  const [activeTab, setActiveTab] = useState("Semua");
-  const [openModal, setOpenModal] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState(null);
+  const { bookingList, updateBooking } = useAppData();
+  const [activeTab, setActiveTab] = useState("Menunggu Verifikasi DP");
+  const [search, setSearch] = useState("");
 
-  const filteredPayments =
-    activeTab === "Semua"
-      ? payments
-      : payments.filter((payment) => payment.paymentStatus === activeTab);
+  const pendingBookings = useMemo(() => {
+    let list = bookingList.filter(
+      (b) =>
+        b.paymentStatus === "Menunggu Verifikasi DP" ||
+        b.paymentStatus === "DP Sudah Dibayar" ||
+        b.paymentStatus === "Lunas" ||
+        b.paymentStatus === "DP Terbayar"
+    );
+
+    if (activeTab !== "Semua") {
+      list = list.filter((b) => b.paymentStatus === activeTab);
+    }
+
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(
+        (b) =>
+          b.bookingCode?.toLowerCase().includes(q) ||
+          b.customerName?.toLowerCase().includes(q) ||
+          b.teamName?.toLowerCase().includes(q)
+      );
+    }
+
+    return list.sort((a, b) => b.id - a.id);
+  }, [bookingList, activeTab, search]);
+
+  const handleVerifyDP = (booking) => {
+    updateBooking(booking.id, {
+      paymentStatus: "DP Sudah Dibayar",
+      bookingStatus: "Dikonfirmasi",
+    });
+  };
+
+  const handleSettle = (booking) => {
+    updateBooking(booking.id, {
+      paymentStatus: "Lunas",
+      bookingStatus: "Selesai",
+    });
+  };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap gap-5 border-b border-gray-200">
+    <div className="space-y-6">
+      <PageHeader
+        title="Verifikasi Pembayaran"
+        subtitle="Kelola DP 50% dan pelunasan saat tim datang ke lapangan"
+      />
+
+      <SearchBar
+        value={search}
+        onChange={setSearch}
+        placeholder="Cari nama tim atau kode booking (TRPA-...)"
+      />
+
+      <div className="flex flex-wrap gap-2 border-b border-brand-border pb-2">
         {tabs.map((tab) => (
           <button
             key={tab}
+            type="button"
             onClick={() => setActiveTab(tab)}
-            className={`border-b-2 pb-2 text-sm font-semibold transition-all duration-200 ${
-              activeTab === tab ? "border-brand-gold text-brand-gold" : "border-transparent text-gray-500 hover:text-brand-dark"
+            className={`rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
+              activeTab === tab
+                ? "bg-brand-gold text-brand-dark"
+                : "text-gray-400 hover:text-white"
             }`}
           >
             {tab}
@@ -32,89 +83,73 @@ function VerifyPayment() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        {filteredPayments.map((payment) => (
-          <div key={payment.id} className="relative rounded-xl bg-white p-4 shadow-sm">
-            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm font-bold text-brand-gold">{payment.bookingCode}</p>
-                <p className="text-sm text-gray-600">Verifikasi DP</p>
-              </div>
-              <StatusBadge status={payment.paymentStatus} />
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="rounded-xl border border-gray-200 p-4">
-                <p className="text-sm text-gray-500">Nama Customer</p>
-                <p className="mt-2 font-semibold text-brand-dark">{payment.customerName}</p>
-                <p className="text-sm text-gray-500">Lapangan: {payment.fieldName}</p>
-                <p className="text-sm text-gray-500">{payment.date}</p>
-                <p className="text-sm text-gray-500">{payment.startTime} - {payment.endTime}</p>
-              </div>
-              <div className="rounded-xl border border-gray-200 p-4">
-                <p className="text-sm text-gray-500">Metode Pembayaran</p>
-                <p className="mt-2 font-semibold text-brand-dark">{payment.paymentMethod}</p>
-                <p className="mt-4 text-sm text-gray-500">Bank: {payment.bankName}</p>
-                <p className="text-sm text-gray-500">Akun: {payment.accountName}</p>
-              </div>
-            </div>
-
-            <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-xl border border-gray-200 p-4">
-                <p className="text-sm text-gray-500">Total Harga</p>
-                <p className="mt-2 font-semibold text-brand-gold">{formatRupiah(payment.totalPrice)}</p>
-              </div>
-              <div className="rounded-xl border border-gray-200 p-4">
-                <p className="text-sm text-gray-500">DP 50%</p>
-                <p className="mt-2 font-semibold text-brand-gold">{formatRupiah(payment.downPayment)}</p>
-              </div>
-              <div className="rounded-xl border border-gray-200 p-4">
-                <p className="text-sm text-gray-500">Sisa Bayar</p>
-                <p className="mt-2 font-semibold text-brand-gold">{formatRupiah(payment.remainingPayment)}</p>
-              </div>
-            </div>
-
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedPayment(payment);
-                  setOpenModal(true);
-                }}
-                className="rounded-lg border border-brand-dark px-4 py-2 text-sm font-semibold text-brand-dark transition-all duration-200 hover:bg-brand-gold hover:text-brand-dark"
-              >
-                Lihat Bukti DP
-              </button>
-              <button className="rounded-lg bg-brand-gold px-4 py-2 text-sm font-semibold text-brand-dark transition-all duration-200 hover:bg-brand-goldLight">
-                Verifikasi DP
-              </button>
-            </div>
-
-            {payment.adminNote && (
-              <p className="mt-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
-                Catatan Admin: {payment.adminNote}
-              </p>
-            )}
+        {pendingBookings.length === 0 ? (
+          <div className="premium-card col-span-full py-12 text-center text-gray-400">
+            Tidak ada pesanan ditemukan.
           </div>
-        ))}
+        ) : (
+          pendingBookings.map((booking) => (
+            <div key={booking.id} className="premium-card p-5">
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-bold text-brand-gold">{booking.bookingCode}</p>
+                  <p className="text-sm text-gray-400">
+                    {booking.teamName || booking.customerName}
+                  </p>
+                </div>
+                <StatusBadge status={booking.paymentStatus} />
+              </div>
+
+              <div className="grid gap-3 text-sm sm:grid-cols-2">
+                <div className="rounded-xl border border-brand-border bg-brand-dark p-4">
+                  <p className="text-gray-500">Lapangan & Jadwal</p>
+                  <p className="mt-1 font-semibold text-white">{booking.fieldName}</p>
+                  <p className="text-gray-400">{booking.date}</p>
+                  <p className="text-gray-400">
+                    {booking.startTime} - {booking.endTime}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-brand-border bg-brand-dark p-4">
+                  <p className="text-gray-500">Pembayaran</p>
+                  <p className="mt-1 text-brand-gold">
+                    DP: {formatRupiah(booking.downPayment)}
+                  </p>
+                  <p className="text-gray-400">
+                    Sisa: {formatRupiah(booking.remainingPayment)}
+                  </p>
+                  <p className="mt-1 text-xs text-gray-500">{booking.paymentMethod}</p>
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {booking.paymentStatus === "Menunggu Verifikasi DP" && (
+                  <button
+                    type="button"
+                    onClick={() => handleVerifyDP(booking)}
+                    className="btn-gold flex-1 text-sm"
+                  >
+                    Verifikasi DP
+                  </button>
+                )}
+                {booking.paymentStatus === "DP Sudah Dibayar" && (
+                  <button
+                    type="button"
+                    onClick={() => handleSettle(booking)}
+                    className="btn-gold flex-1 text-sm"
+                  >
+                    Selesaikan Pelunasan
+                  </button>
+                )}
+                {booking.paymentStatus === "Lunas" && (
+                  <span className="flex-1 rounded-lg bg-green-500/10 py-2 text-center text-sm font-semibold text-green-400">
+                    Lunas & Selesai
+                  </span>
+                )}
+              </div>
+            </div>
+          ))
+        )}
       </div>
-
-      {openModal && selectedPayment && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-2xl rounded-xl bg-white p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-brand-dark">Bukti DP - {selectedPayment.bookingCode}</h3>
-              <button onClick={() => setOpenModal(false)} className="rounded bg-red-50 px-3 py-1 text-red-600">
-                Tutup
-              </button>
-            </div>
-            <img
-              src={selectedPayment.proofImage}
-              alt="Bukti Pembayaran"
-              className="h-80 w-full rounded-lg object-cover"
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 }
