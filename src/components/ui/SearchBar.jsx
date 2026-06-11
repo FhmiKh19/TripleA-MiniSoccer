@@ -2,7 +2,7 @@ function SearchBar({ value, onChange, placeholder = "Cari nama tim atau kode boo
   return (
     <div className="relative">
       <svg
-        className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500"
+        className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -19,7 +19,7 @@ function SearchBar({ value, onChange, placeholder = "Cari nama tim atau kode boo
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="premium-input pl-11"
+        className="input input-bordered w-full pl-11"
       />
     </div>
   );

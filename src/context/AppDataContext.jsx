@@ -1,5 +1,6 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import { fields, bookings, cancellations, timeSlots } from "../data/seeder";
+import { apiGetLapangan, apiAddLapangan, apiUpdateLapangan, apiDeleteLapangan } from "../services/api";
 
 const AppDataContext = createContext(null);
 
@@ -14,10 +15,25 @@ export function AppDataProvider({ children }) {
     return saved ? JSON.parse(saved) : cancellations;
   });
 
-  const [fieldList, setFieldList] = useState(() => {
-    const saved = localStorage.getItem("fieldList");
-    return saved ? JSON.parse(saved) : fields;
-  });
+  const [fieldList, setFieldList] = useState([]);
+  const [fieldLoading, setFieldLoading] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    setFieldLoading(true);
+    apiGetLapangan()
+      .then((res) => {
+        if (!mounted) return;
+        // expect API returns array or { data }
+        const data = Array.isArray(res) ? res : res.data || [];
+        setFieldList(data);
+      })
+      .catch(() => {
+        setFieldList(fields);
+      })
+      .finally(() => mounted && setFieldLoading(false));
+    return () => (mounted = false);
+  }, []);
 
   const [slotList, setSlotList] = useState(() => {
     const saved = localStorage.getItem("slotList");
@@ -58,23 +74,23 @@ export function AppDataProvider({ children }) {
     persist("cancellationList", updated);
   };
 
-  const updateField = (id, changes) => {
-    const updated = fieldList.map((f) => (f.id === id ? { ...f, ...changes } : f));
-    setFieldList(updated);
-    persist("fieldList", updated);
+  const updateField = async (id, changes) => {
+    const res = await apiUpdateLapangan(id, changes);
+    const updatedField = res.data || res;
+    setFieldList((prev) => prev.map((f) => (f.id === id ? updatedField : f)));
+    return updatedField;
   };
 
-  const addField = (field) => {
-    const newField = { ...field, id: Date.now() };
-    const updated = [...fieldList, newField];
-    setFieldList(updated);
-    persist("fieldList", updated);
+  const addField = async (field) => {
+    const res = await apiAddLapangan(field);
+    const newField = res.data || res;
+    setFieldList((prev) => [...prev, newField]);
+    return newField;
   };
 
-  const deleteField = (id) => {
-    const updated = fieldList.filter((f) => f.id !== id);
-    setFieldList(updated);
-    persist("fieldList", updated);
+  const deleteField = async (id) => {
+    await apiDeleteLapangan(id);
+    setFieldList((prev) => prev.filter((f) => f.id !== id));
   };
 
   const updateSlotStatus = (slotId, status) => {

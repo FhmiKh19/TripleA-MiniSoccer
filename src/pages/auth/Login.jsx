@@ -13,7 +13,7 @@ function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email || !password) {
       setError("Email dan kata sandi harus diisi.");
       return;
@@ -21,10 +21,9 @@ function Login() {
 
     setError("");
     setLoading(true);
-    setTimeout(() => {
-      const result = login(email, password);
-      setLoading(false);
 
+    try {
+      const result = await login(email, password);
       if (result.success) {
         if (result.role === "admin") navigate("/admin");
         else if (result.role === "owner") navigate("/owner");
@@ -32,7 +31,11 @@ function Login() {
       } else {
         setError(result.message);
       }
-    }, 500);
+    } catch (err) {
+      setError("Terjadi kesalahan saat login. Silakan coba lagi.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleKeyPress = (e) => {

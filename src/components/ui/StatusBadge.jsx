@@ -1,30 +1,30 @@
 const statusClassMap = {
-  disetujui: "bg-green-500/20 text-green-400",
-  aktif: "bg-green-500/20 text-green-400",
-  tersedia: "bg-green-500/20 text-green-400",
-  lunas: "bg-green-500/20 text-green-400",
-  selesai: "bg-green-500/20 text-green-400",
-  dijadwalkan: "bg-blue-500/20 text-blue-400",
-  dikonfirmasi: "bg-blue-500/20 text-blue-400",
-  "reservasi aktif": "bg-blue-500/20 text-blue-400",
-  "menunggu konfirmasi pembatalan": "bg-orange-500/20 text-orange-400",
-  "dp sudah dibayar": "bg-blue-500/20 text-blue-400",
-  "dp terbayar": "bg-blue-500/20 text-blue-400",
-  "menunggu verifikasi dp": "bg-amber-500/20 text-amber-400",
-  pending: "bg-amber-500/20 text-amber-400",
-  "menunggu pembayaran": "bg-amber-500/20 text-amber-400",
-  ditolak: "bg-red-500/20 text-red-400",
-  dibatalkan: "border border-red-500/50 bg-transparent text-red-400",
-  dipesan: "bg-red-500/20 text-red-400",
-  maintenance: "bg-gray-500/20 text-gray-400",
+  disetujui: "badge-success",
+  aktif: "badge-success",
+  tersedia: "badge-success",
+  lunas: "badge-success",
+  selesai: "badge-success",
+  dijadwalkan: "badge-info",
+  dikonfirmasi: "badge-info",
+  "reservasi aktif": "badge-info",
+  "menunggu konfirmasi pembatalan": "badge-warning",
+  "dp sudah dibayar": "badge-info",
+  "dp terbayar": "badge-info",
+  "menunggu verifikasi dp": "badge-warning",
+  pending: "badge-warning",
+  "menunggu pembayaran": "badge-warning",
+  ditolak: "badge-error",
+  dibatalkan: "badge-outline badge-error",
+  dipesan: "badge-error",
+  maintenance: "badge-secondary",
 };
 
 function StatusBadge({ status }) {
   const normalized = status.toLowerCase();
-  const className = statusClassMap[normalized] || "bg-gray-500/20 text-gray-400";
+  const className = statusClassMap[normalized] || "badge badge-outline badge-info";
 
   return (
-    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${className}`}>
+    <span className={`badge ${className} text-sm font-semibold`}>
       {status}
     </span>
   );

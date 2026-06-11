@@ -12,13 +12,7 @@ function TimeSlotGrid({ selectedSlot, onSelect }) {
             key={slot}
             disabled={isBooked}
             onClick={() => onSelect(slot)}
-            className={`rounded-lg py-2 px-3 text-sm transition-colors ${
-              isBooked
-                ? "cursor-not-allowed border border-gray-200 bg-gray-100 text-gray-400 line-through"
-                : isSelected
-                  ? "border border-brand-gold bg-brand-gold font-semibold text-brand-dark"
-                  : "border-2 border-brand-gold bg-white text-brand-dark hover:bg-brand-gold"
-            }`}
+            className={`btn btn-sm ${isBooked ? "btn-disabled btn-outline" : isSelected ? "btn-primary" : "btn-outline"}`}
           >
             {slot}
           </button>
