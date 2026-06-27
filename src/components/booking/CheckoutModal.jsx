@@ -2,47 +2,45 @@ import { useState } from "react";
 import Modal from "../ui/Modal";
 import PaymentMethodPicker, { getPaymentMethodLabel, mockPaymentMethods } from "./PaymentMethodPicker";
 import { useAppData } from "../../context/AppDataContext";
-import { useAuth } from "../../context/AuthContext";
-import { fields, formatRupiah } from "../../data/seeder";
-import { buildBookingPayload } from "../../utils/bookingHelpers";
+import { formatRupiah } from "../../data/seeder";
 
 function CheckoutModal({ open, onClose, bookingData }) {
-  const { addBooking, blockSlot } = useAppData();
-  const { currentUser } = useAuth();
+  const { createBooking, fieldList } = useAppData();
   const [selectedMethod, setSelectedMethod] = useState(mockPaymentMethods[0].id);
   const [isProcessing, setIsProcessing] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState("");
 
   if (!bookingData) return null;
 
-  const { selectedFieldId, selectedDate, selectedSlot, selectedServices, totalPrice, downPayment, remainingPayment } =
+  const { selectedFieldId, selectedDate, selectedSlot, totalPrice, downPayment, remainingPayment } =
     bookingData;
 
-  const fieldName = fields.find((f) => f.id === selectedFieldId)?.name || "-";
+  const fieldName = fieldList.find((f) => f.id === selectedFieldId)?.name || "-";
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     setIsProcessing(true);
-    setTimeout(() => {
-      const payload = buildBookingPayload({
-        selectedFieldId,
-        selectedDate,
-        selectedSlot,
-        selectedServices,
+    setError("");
+    try {
+      await createBooking({
+        fieldId: selectedFieldId,
+        date: selectedDate,
+        startTime: selectedSlot.startTime,
+        endTime: selectedSlot.endTime,
+        duration: 1,
         totalPrice,
-        downPayment,
-        remainingPayment,
-        paymentMethod: getPaymentMethodLabel(selectedMethod),
-        user: currentUser,
       });
-      addBooking(payload);
-      if (selectedSlot?.id) blockSlot(selectedSlot.id);
       setSuccess(true);
+    } catch {
+      setError("Gagal membuat reservasi. Coba lagi.");
+    } finally {
       setIsProcessing(false);
-    }, 800);
+    }
   };
 
   const handleClose = () => {
     setSuccess(false);
+    setError("");
     setSelectedMethod(mockPaymentMethods[0].id);
     onClose();
   };
@@ -55,10 +53,10 @@ function CheckoutModal({ open, onClose, bookingData }) {
             ✓
           </div>
           <h4 className="text-xl font-bold text-brand-gold">
-            Pembayaran Berhasil & Jadwal Berhasil Diamankan
+            Reservasi Berhasil Dibuat
           </h4>
           <p className="mt-2 text-sm text-gray-400">
-            DP {formatRupiah(downPayment)} via {getPaymentMethodLabel(selectedMethod)} sedang diverifikasi admin.
+            DP {formatRupiah(downPayment)} via {getPaymentMethodLabel(selectedMethod)} — silakan upload bukti bayar di riwayat reservasi.
           </p>
           <button type="button" onClick={handleClose} className="btn-gold mt-6 w-full">
             Tutup
@@ -99,6 +97,10 @@ function CheckoutModal({ open, onClose, bookingData }) {
             dark
           />
 
+          {error && (
+            <p className="mt-3 rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400">{error}</p>
+          )}
+
           <div className="mt-6 flex gap-3">
             <button type="button" onClick={handleClose} className="btn-dark flex-1" disabled={isProcessing}>
               Batal
@@ -109,7 +111,7 @@ function CheckoutModal({ open, onClose, bookingData }) {
               disabled={isProcessing}
               className="btn-gold flex-1 disabled:opacity-60"
             >
-              {isProcessing ? "Memproses..." : "Konfirmasi Pembayaran"}
+              {isProcessing ? "Memproses..." : "Konfirmasi Reservasi"}
             </button>
           </div>
         </>

@@ -22,20 +22,19 @@ export function getReservationStatus(booking) {
   if (booking.bookingStatus === "Menunggu Konfirmasi Pembatalan") {
     return RESERVATION_STATUS.CANCELLATION_PENDING;
   }
-  if (booking.bookingStatus === "Selesai" || booking.paymentStatus === "Lunas") {
+  if (booking.bookingStatus === "Selesai") {
     return RESERVATION_STATUS.COMPLETED;
   }
-  if (
-    booking.bookingStatus === "Dikonfirmasi" &&
-    ["DP Sudah Dibayar", "DP Terbayar", "Lunas"].includes(booking.paymentStatus)
-  ) {
+  if (booking.bookingStatus === "Dikonfirmasi") {
     return RESERVATION_STATUS.ACTIVE;
   }
   return RESERVATION_STATUS.PENDING_PAYMENT;
 }
 
 export function needsDPPayment(booking) {
-  return ["Menunggu Pembayaran", "Belum Dibayar"].includes(booking.paymentStatus);
+  return ["Menunggu Pembayaran", "Belum Dibayar", "Menunggu Verifikasi DP"].includes(
+    booking.paymentStatus
+  );
 }
 
 export function getReservationActions(booking) {

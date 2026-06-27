@@ -33,8 +33,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/booking', [BookingController::class, 'index']);           // customer: milik sendiri | admin: semua
     Route::post('/booking', [BookingController::class, 'store']);          // customer
     Route::get('/booking/{id}', [BookingController::class, 'show']);
-    Route::patch('/booking/{id}/verify', [BookingController::class, 'verifyPayment']); // admin
-    Route::get('/jadwal', [BookingController::class, 'jadwal']);           // admin: lihat jadwal berdasar tanggal
+    Route::patch('/booking/{id}/verify', [BookingController::class, 'verifyPayment'])->middleware('role:admin');
+    Route::patch('/booking/{id}/extend', [BookingController::class, 'extend']);
+    Route::get('/jadwal', [BookingController::class, 'jadwal'])->middleware('role:admin,owner');
 
     // Pembatalan
     Route::post('/pembatalan', [PembatalanController::class, 'store']);           // customer: ajukan pembatalan

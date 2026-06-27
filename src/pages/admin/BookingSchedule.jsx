@@ -1,43 +1,62 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ScheduleCalendarGrid from "../../components/admin/ScheduleCalendarGrid";
 import PageHeader from "../../components/ui/PageHeader";
 import { useAppData } from "../../context/AppDataContext";
+import { generateSlotsForFields } from "../../utils/slotHelpers";
 
 function BookingSchedule() {
-  const { slotList, blockSlot, releaseSlot } = useAppData();
+  const { fieldList, loadJadwalForDate, bookingList } = useAppData();
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [daySlots, setDaySlots] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const dates = useMemo(
-    () => [...new Set(slotList.map((s) => s.date))].sort(),
-    [slotList]
-  );
+  const dates = useMemo(() => {
+    const base = generateSlotsForFields(fieldList, 14);
+    return [...new Set(base.map((s) => s.date))].sort();
+  }, [fieldList]);
 
-  const [selectedDate, setSelectedDate] = useState(dates[0] || "");
-
-  const handleToggleSlot = (slot) => {
-    if (slot.status === "Tersedia") {
-      if (window.confirm(`Blok slot ${slot.fieldName} ${slot.startTime} untuk booking offline?`)) {
-        blockSlot(slot.id);
-      }
-    } else if (slot.status === "Dipesan") {
-      if (window.confirm(`Buka kembali slot ${slot.fieldName} ${slot.startTime}?`)) {
-        releaseSlot(slot.id);
-      }
-    }
-  };
-
-  const stats = useMemo(() => {
-    const daySlots = slotList.filter((s) => s.date === selectedDate);
-    return {
-      tersedia: daySlots.filter((s) => s.status === "Tersedia").length,
-      dipesan: daySlots.filter((s) => s.status === "Dipesan").length,
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      await loadJadwalForDate(selectedDate, fieldList);
+      setLoading(false);
     };
-  }, [slotList, selectedDate]);
+    if (selectedDate && fieldList.length) load();
+  }, [selectedDate, fieldList, loadJadwalForDate]);
+
+  useEffect(() => {
+    const base = generateSlotsForFields(fieldList, 14);
+    const dayBookings = bookingList.filter((b) => b.date === selectedDate);
+    const booked = dayBookings.map((b) => ({
+      lapangan_id: b.fieldId,
+      date: b.date,
+      start_time: b.startTime,
+      end_time: b.endTime,
+    }));
+    const slots = base
+      .filter((s) => s.date === selectedDate)
+      .map((s) => {
+        const isBooked = booked.some(
+          (b) =>
+            b.lapangan_id === s.fieldId &&
+            s.startTime >= b.start_time &&
+            s.startTime < b.end_time
+        );
+        return isBooked ? { ...s, status: "Dipesan" } : s;
+      });
+    setDaySlots(slots);
+  }, [selectedDate, fieldList, bookingList]);
+
+  const stats = useMemo(() => ({
+    tersedia: daySlots.filter((s) => s.status === "Tersedia").length,
+    dipesan: daySlots.filter((s) => s.status === "Dipesan").length,
+  }), [daySlots]);
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Manajemen Jadwal"
-        subtitle="Kalender interaktif — klik slot untuk blok/buka jadwal manual"
+        subtitle="Lihat jadwal reservasi per tanggal — UC-07"
       />
 
       <div className="flex flex-wrap items-center gap-4">
@@ -58,21 +77,13 @@ function BookingSchedule() {
             Terisi: {stats.dipesan}
           </span>
         </div>
-      </div>
-
-      <div className="flex flex-wrap gap-4 text-xs text-gray-400">
-        <span className="flex items-center gap-2">
-          <span className="inline-block h-3 w-3 rounded bg-green-500/40" /> Tersedia (klik untuk blok)
-        </span>
-        <span className="flex items-center gap-2">
-          <span className="inline-block h-3 w-3 rounded bg-red-500/40" /> Terisi (klik untuk buka)
-        </span>
+        {loading && <span className="text-sm text-gray-400">Memuat jadwal...</span>}
       </div>
 
       <ScheduleCalendarGrid
-        slots={slotList}
+        slots={daySlots}
         selectedDate={selectedDate}
-        onToggleSlot={handleToggleSlot}
+        onToggleSlot={() => {}}
       />
     </div>
   );

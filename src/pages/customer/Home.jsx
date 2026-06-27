@@ -1,11 +1,13 @@
 import FieldCard from "../../components/ui/FieldCard";
 import BookingWidget from "../../components/booking/BookingWidget";
-import { fields, priceList, orderSteps, formatRupiah } from "../../data/seeder";
+import { priceList, orderSteps, formatRupiah } from "../../data/seeder";
+import { useAppData } from "../../context/AppDataContext";
 
 function Home() {
+  const { fieldList } = useAppData();
   const lowestPrice = Math.min(...priceList.map((item) => item.price));
 
-  const fieldData = fields.map((field) => ({
+  const fieldData = fieldList.map((field) => ({
     ...field,
     price: `Mulai ${formatRupiah(lowestPrice)} / jam`,
   }));

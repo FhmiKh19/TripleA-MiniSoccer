@@ -1,113 +1,73 @@
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import MetricCard from "../../components/ui/MetricCard";
 import PageHeader from "../../components/ui/PageHeader";
 import RevenueChart from "../../components/owner/RevenueChart";
 import PeakHoursChart from "../../components/owner/PeakHoursChart";
 import StatusBadge from "../../components/ui/StatusBadge";
 import { useAppData } from "../../context/AppDataContext";
-import { useOwner } from "../../context/OwnerContext";
 import { formatRupiah } from "../../data/seeder";
 
 const WEEKDAYS = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
 
 function Dashboard() {
-  const { bookingList } = useAppData();
-  const { selectedFieldId } = useOwner();
+  const { fetchStatistik, bookingList } = useAppData();
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const fieldBookings = useMemo(
-    () => bookingList.filter((b) => b.fieldId === selectedFieldId),
-    [bookingList, selectedFieldId]
-  );
+  useEffect(() => {
+    fetchStatistik()
+      .then((res) => setStats(res))
+      .catch(() => setStats(null))
+      .finally(() => setLoading(false));
+  }, [fetchStatistik]);
 
-  const stats = useMemo(() => {
-    const paid = fieldBookings.filter(
-      (b) =>
-        b.paymentStatus === "DP Sudah Dibayar" ||
-        b.paymentStatus === "Lunas" ||
-        b.paymentStatus === "DP Terbayar"
-    );
-
-    const totalRevenue = paid.reduce((s, b) => s + b.totalPrice, 0);
-    const dpIncome = paid.reduce((s, b) => s + b.downPayment, 0);
-    const unpaidRemaining = fieldBookings
-      .filter((b) => b.paymentStatus !== "Lunas")
-      .reduce((s, b) => s + b.remainingPayment, 0);
-
-    const currentMonth = new Date().getMonth();
-    const monthlyIncome = paid
-      .filter((b) => {
-        try {
-          const d = new Date(b.date);
-          return d.getMonth() === currentMonth;
-        } catch {
-          return false;
-        }
-      })
-      .reduce((s, b) => s + b.downPayment, 0);
-
-    return { totalRevenue, dpIncome, unpaidRemaining, monthlyIncome };
-  }, [fieldBookings]);
-
-  const weeklyData = useMemo(() => {
-    return WEEKDAYS.map((label, i) => ({
-      label,
-      bookings: fieldBookings.filter((b) => {
-        try {
-          const d = new Date(b.date);
-          return d.getDay() === (i + 1) % 7;
-        } catch {
-          return false;
-        }
-      }).length,
-    }));
-  }, [fieldBookings]);
-
-  const peakHoursData = useMemo(() => {
-    const hours = {};
-    fieldBookings.forEach((b) => {
-      const h = b.startTime?.slice(0, 2) || "00";
-      hours[h] = (hours[h] || 0) + 1;
+  const weeklyData = WEEKDAYS.map((label) => ({ label, bookings: 0 }));
+  if (stats?.reservasi_per_bulan) {
+    stats.reservasi_per_bulan.forEach((item, idx) => {
+      if (weeklyData[idx]) weeklyData[idx].bookings = item.total;
     });
-    return Array.from({ length: 17 }, (_, i) => {
-      const hour = `${String(i + 7).padStart(2, "0")}:00`;
-      return { hour, count: hours[String(i + 7).padStart(2, "0")] || 0 };
-    });
-  }, [fieldBookings]);
+  }
 
-  const recentTransactions = fieldBookings
-    .filter(
-      (b) =>
-        b.paymentStatus === "DP Sudah Dibayar" || b.paymentStatus === "Lunas"
-    )
+  const peakHoursData = Array.from({ length: 17 }, (_, i) => ({
+    hour: `${String(i + 7).padStart(2, "0")}:00`,
+    count: 0,
+  }));
+
+  const recentTransactions = bookingList
+    .filter((b) => b.paymentStatus === "DP Sudah Dibayar" || b.paymentStatus === "Lunas")
     .slice(-5)
     .reverse();
+
+  if (loading) {
+    return <p className="text-gray-400">Memuat statistik...</p>;
+  }
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Dasbor Pemilik"
-        subtitle="Visualisasi finansial dan performa lapangan"
+        subtitle="Statistik perkembangan bisnis — UC-09"
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard
+          title="Total Reservasi"
+          value={stats?.total_reservasi ?? 0}
+          accent="gold"
+        />
+        <MetricCard
           title="Total Pendapatan"
-          value={formatRupiah(stats.totalRevenue)}
+          value={formatRupiah(stats?.total_pendapatan ?? 0)}
           accent="gold"
         />
         <MetricCard
-          title="Uang DP Masuk"
-          value={formatRupiah(stats.dpIncome)}
-          accent="gold"
-        />
-        <MetricCard
-          title="Sisa Pelunasan Belum Dibayar"
-          value={formatRupiah(stats.unpaidRemaining)}
+          title="Jam Tersewa"
+          value={`${stats?.jam_tersewa ?? 0} jam`}
           accent="white"
         />
         <MetricCard
-          title="Pendapatan Bulan Ini"
-          value={formatRupiah(stats.monthlyIncome)}
+          title="Lapangan Terpopuler"
+          value={stats?.lapangan_terpopuler ?? "-"}
           accent="gold"
         />
       </div>

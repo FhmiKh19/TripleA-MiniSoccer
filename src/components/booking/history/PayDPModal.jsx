@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Modal from "../../ui/Modal";
 import PaymentMethodPicker, {
   getPaymentMethodLabel,
@@ -6,11 +6,14 @@ import PaymentMethodPicker, {
 } from "../PaymentMethodPicker";
 import { formatRupiah } from "../../../data/seeder";
 import { DP_PERCENTAGE } from "../../../utils/bookingHelpers";
+import { apiPaymentUpload } from "../../../services/api";
 
 function PayDPModal({ open, onClose, booking, onConfirm }) {
   const [selectedMethod, setSelectedMethod] = useState(mockPaymentMethods[0].id);
+  const [proofFile, setProofFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState("");
 
   if (!booking) return null;
 
@@ -18,20 +21,31 @@ function PayDPModal({ open, onClose, booking, onConfirm }) {
 
   const handleClose = () => {
     setSuccess(false);
+    setProofFile(null);
+    setError("");
     setSelectedMethod(mockPaymentMethods[0].id);
     onClose();
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
+    if (!proofFile) {
+      setError("Upload bukti pembayaran terlebih dahulu.");
+      return;
+    }
     setLoading(true);
-    setTimeout(() => {
-      onConfirm({
+    setError("");
+    try {
+      await apiPaymentUpload(booking.id, proofFile);
+      await onConfirm({
         paymentMethod: getPaymentMethodLabel(selectedMethod),
         paymentStatus: "Menunggu Verifikasi DP",
       });
       setSuccess(true);
+    } catch {
+      setError("Gagal mengunggah bukti pembayaran.");
+    } finally {
       setLoading(false);
-    }, 700);
+    }
   };
 
   return (
@@ -41,7 +55,7 @@ function PayDPModal({ open, onClose, booking, onConfirm }) {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-500/20 text-3xl text-green-400">
             ✓
           </div>
-          <h4 className="text-lg font-bold text-brand-gold">Pembayaran DP Berhasil Dikirim</h4>
+          <h4 className="text-lg font-bold text-brand-gold">Bukti Pembayaran Berhasil Diunggah</h4>
           <p className="mt-2 text-sm text-gray-400">
             DP {formatRupiah(dpAmount)} via {getPaymentMethodLabel(selectedMethod)} menunggu verifikasi admin.
           </p>
@@ -55,9 +69,6 @@ function PayDPModal({ open, onClose, booking, onConfirm }) {
             <p className="text-sm text-gray-400">Nomor Reservasi</p>
             <p className="font-bold text-brand-gold">{booking.bookingCode}</p>
             <p className="mt-3 text-3xl font-black text-brand-gold">{formatRupiah(dpAmount)}</p>
-            <p className="mt-1 text-xs text-gray-500">
-              {formatRupiah(booking.totalPrice)} × 50% = {formatRupiah(dpAmount)}
-            </p>
           </div>
 
           <PaymentMethodPicker
@@ -66,6 +77,22 @@ function PayDPModal({ open, onClose, booking, onConfirm }) {
             dpAmount={dpAmount}
             dark
           />
+
+          <div className="mt-4">
+            <label className="mb-2 block text-sm font-medium text-gray-300">
+              Upload Bukti Pembayaran
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setProofFile(e.target.files?.[0] || null)}
+              className="w-full rounded-lg border border-brand-border bg-brand-card p-2 text-sm text-gray-300"
+            />
+          </div>
+
+          {error && (
+            <p className="mt-3 rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400">{error}</p>
+          )}
 
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <button type="button" onClick={handleClose} className="btn-dark flex-1" disabled={loading}>
@@ -77,7 +104,7 @@ function PayDPModal({ open, onClose, booking, onConfirm }) {
               disabled={loading}
               className="btn-gold flex-1 disabled:opacity-60"
             >
-              {loading ? "Memproses..." : "Konfirmasi Pembayaran"}
+              {loading ? "Mengunggah..." : "Konfirmasi Pembayaran"}
             </button>
           </div>
         </>

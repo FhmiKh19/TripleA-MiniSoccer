@@ -12,10 +12,8 @@ class BookingController
     public function index(Request $request)
     {
         if ($request->user()->role === 'customer') {
-            // Customer hanya bisa lihat booking miliknya sendiri
             $bookings = $request->user()->bookings()->with(['lapangan', 'user'])->get();
-        } else if ($request->user()->role === 'admin') {
-            // Admin bisa lihat semua booking
+        } elseif (in_array($request->user()->role, ['admin', 'owner'])) {
             $bookings = Booking::with(['lapangan', 'user'])->get();
         } else {
             return response()->json(['message' => 'Akses ditolak.'], 403);
@@ -71,13 +69,17 @@ class BookingController
 
     public function verifyPayment(Request $request, $id)
     {
+        if ($request->user()->role !== 'admin') {
+            return response()->json(['message' => 'Akses ditolak. Hanya admin yang bisa verifikasi pembayaran.'], 403);
+        }
+
         $booking = Booking::find($id);
         if (!$booking) {
             return response()->json(['message' => 'Booking tidak ditemukan.'], 404);
         }
 
         $validated = $request->validate([
-            'action' => 'required|in:approve,reject',
+            'action' => 'required|in:approve,reject,settle,complete',
         ]);
 
         if ($validated['action'] === 'approve') {
@@ -87,6 +89,18 @@ class BookingController
                 'income_received' => $booking->down_payment,
             ]);
             $message = 'Booking dikonfirmasi, DP berhasil diverifikasi.';
+        } elseif ($validated['action'] === 'settle') {
+            $booking->update([
+                'payment_status' => 'Lunas',
+                'booking_status' => 'Dikonfirmasi',
+                'income_received' => $booking->total_price,
+            ]);
+            $message = 'Pelunasan berhasil dicatat. Reservasi masih aktif hingga selesai bermain.';
+        } elseif ($validated['action'] === 'complete') {
+            $booking->update([
+                'booking_status' => 'Selesai',
+            ]);
+            $message = 'Reservasi ditandai selesai.';
         } else {
             $booking->update([
                 'payment_status' => 'Ditolak',
@@ -95,11 +109,71 @@ class BookingController
             $message = 'Booking ditolak.';
         }
 
-        return response()->json(['message' => $message, 'booking' => $booking]);
+        return response()->json(['message' => $message, 'booking' => $booking->load(['lapangan', 'user'])]);
+    }
+
+    public function extend(Request $request, $id)
+    {
+        $booking = Booking::find($id);
+        if (!$booking) {
+            return response()->json(['message' => 'Booking tidak ditemukan.'], 404);
+        }
+
+        if ($booking->user_id !== $request->user()->id) {
+            return response()->json(['message' => 'Akses ditolak.'], 403);
+        }
+
+        if (!in_array($booking->booking_status, ['Dikonfirmasi', 'Pending'])) {
+            return response()->json(['message' => 'Booking tidak bisa ditambah durasinya.'], 400);
+        }
+
+        $validated = $request->validate([
+            'extra_hours'  => 'required|integer|min:1|max:5',
+            'extra_price'  => 'required|integer|min:0',
+        ]);
+
+        $extraDP = $validated['extra_price'] / 2;
+        $newDuration = $booking->duration + $validated['extra_hours'];
+        $newTotal = $booking->total_price + $validated['extra_price'];
+        $newDP = $booking->down_payment + $extraDP;
+        $newRemaining = $newTotal - $newDP;
+
+        $endHour = (int) substr($booking->end_time, 0, 2) + $validated['extra_hours'];
+        $newEndTime = sprintf('%02d:00', $endHour % 24);
+
+        $conflict = Booking::where('lapangan_id', $booking->lapangan_id)
+            ->where('date', $booking->date)
+            ->where('id', '!=', $booking->id)
+            ->where('booking_status', '!=', 'Dibatalkan')
+            ->where('start_time', '<', $newEndTime)
+            ->where('end_time', '>', $booking->end_time)
+            ->exists();
+
+        if ($conflict) {
+            return response()->json(['message' => 'Slot tambahan sudah terisi.'], 400);
+        }
+
+        $booking->update([
+            'end_time'          => $newEndTime,
+            'duration'          => $newDuration,
+            'total_price'       => $newTotal,
+            'down_payment'      => $newDP,
+            'remaining_payment' => $newRemaining,
+            'payment_status'    => 'Menunggu Verifikasi DP',
+        ]);
+
+        return response()->json([
+            'message' => 'Durasi berhasil ditambahkan.',
+            'booking' => $booking->load(['lapangan', 'user']),
+        ]);
     }
 
     public function jadwal(Request $request)
     {
+        if (!in_array($request->user()->role, ['admin', 'owner'])) {
+            return response()->json(['message' => 'Akses ditolak.'], 403);
+        }
+
         $validated = $request->validate([
             'date' => 'required|date',
         ]);

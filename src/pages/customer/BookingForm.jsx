@@ -3,14 +3,14 @@ import { useLocation } from "react-router-dom";
 import BookingSummaryCard from "../../components/booking/BookingSummaryCard";
 import CheckoutModal from "../../components/booking/CheckoutModal";
 import PageHeader from "../../components/ui/PageHeader";
-import { additionalServices, fields, formatRupiah } from "../../data/seeder";
+import { additionalServices, formatRupiah } from "../../data/seeder";
 import { useAppData } from "../../context/AppDataContext";
 import { calculatePricing } from "../../utils/bookingHelpers";
 
 function BookingForm() {
   const location = useLocation();
-  const { slotList } = useAppData();
-  const initialFieldId = location.state?.fieldId || fields[0]?.id || null;
+  const { slotList, fieldList } = useAppData();
+  const initialFieldId = location.state?.fieldId || fieldList[0]?.id || null;
   const preferredTime = location.state?.preferredTime || null;
 
   const [selectedFieldId, setSelectedFieldId] = useState(initialFieldId);
@@ -86,7 +86,7 @@ function BookingForm() {
                 }}
                 className="premium-select"
               >
-                {fields.map((f) => (
+                {fieldList.map((f) => (
                   <option key={f.id} value={f.id}>{f.name}</option>
                 ))}
               </select>

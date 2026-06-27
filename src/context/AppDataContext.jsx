@@ -1,91 +1,195 @@
-import { createContext, useContext, useState, useEffect } from "react";
-import { fields, bookings, cancellations, timeSlots } from "../data/seeder";
-import { apiGetLapangan, apiAddLapangan, apiUpdateLapangan, apiDeleteLapangan } from "../services/api";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { fields as fallbackFields } from "../data/seeder";
+import { useAuth } from "./AuthContext";
+import {
+  apiGetLapangan,
+  apiAddLapangan,
+  apiUpdateLapangan,
+  apiDeleteLapangan,
+  apiGetBooking,
+  apiCreateBooking,
+  apiGetJadwal,
+  apiAjukanPembatalan,
+  apiGetPembatalan,
+  apiKonfirmasiPembatalan,
+  apiVerifyPayment,
+  apiExtendBooking,
+  apiGetStatistik,
+  apiGetLaporan,
+} from "../services/api";
+import { mapBookingFromApi, mapCancellationFromApi, mapFieldFromApi, toApiBookingPayload } from "../utils/apiMappers";
+import { generateSlotsForFields, markBookedSlots } from "../utils/slotHelpers";
 
 const AppDataContext = createContext(null);
 
 export function AppDataProvider({ children }) {
-  const [bookingList, setBookingList] = useState(() => {
-    const saved = localStorage.getItem("bookingList");
-    return saved ? JSON.parse(saved) : bookings;
-  });
-
-  const [cancellationList, setCancellationList] = useState(() => {
-    const saved = localStorage.getItem("cancellationList");
-    return saved ? JSON.parse(saved) : cancellations;
-  });
-
+  const { currentUser } = useAuth();
+  const [bookingList, setBookingList] = useState([]);
+  const [cancellationList, setCancellationList] = useState([]);
   const [fieldList, setFieldList] = useState([]);
+  const [slotList, setSlotList] = useState([]);
   const [fieldLoading, setFieldLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(false);
 
-  useEffect(() => {
-    let mounted = true;
+  const loadFields = useCallback(async () => {
     setFieldLoading(true);
-    apiGetLapangan()
-      .then((res) => {
-        if (!mounted) return;
-        // expect API returns array or { data }
-        const data = Array.isArray(res) ? res : res.data || [];
-        setFieldList(data);
-      })
-      .catch(() => {
-        setFieldList(fields);
-      })
-      .finally(() => mounted && setFieldLoading(false));
-    return () => (mounted = false);
+    try {
+      const res = await apiGetLapangan();
+      const data = Array.isArray(res) ? res : res.data || [];
+      const mapped = data.map(mapFieldFromApi);
+      setFieldList(mapped.length > 0 ? mapped : fallbackFields);
+      return mapped.length > 0 ? mapped : fallbackFields;
+    } catch {
+      setFieldList(fallbackFields);
+      return fallbackFields;
+    } finally {
+      setFieldLoading(false);
+    }
   }, []);
 
-  const [slotList, setSlotList] = useState(() => {
-    const saved = localStorage.getItem("slotList");
-    return saved ? JSON.parse(saved) : timeSlots;
-  });
+  const refreshBookings = useCallback(async () => {
+    if (!currentUser || !localStorage.getItem("token")) return [];
+    try {
+      const res = await apiGetBooking();
+      const data = Array.isArray(res) ? res : [];
+      const mapped = data.map(mapBookingFromApi);
+      setBookingList(mapped);
+      return mapped;
+    } catch {
+      return [];
+    }
+  }, [currentUser]);
 
-  const persist = (key, data) => localStorage.setItem(key, JSON.stringify(data));
+  const refreshCancellations = useCallback(async () => {
+    if (!currentUser || currentUser.role !== "admin") return [];
+    try {
+      const res = await apiGetPembatalan();
+      const data = Array.isArray(res) ? res : [];
+      const mapped = data.map(mapCancellationFromApi);
+      setCancellationList(mapped);
+      return mapped;
+    } catch {
+      return [];
+    }
+  }, [currentUser]);
 
-  const addBooking = (booking) => {
-    const updated = [...bookingList, booking];
-    setBookingList(updated);
-    persist("bookingList", updated);
+  const refreshSlots = useCallback(async (fields, bookings) => {
+    const base = generateSlotsForFields(fields.length ? fields : fallbackFields);
+    const marked = markBookedSlots(base, bookings || []);
+    setSlotList(marked);
+    return marked;
+  }, []);
+
+  const loadJadwalForDate = useCallback(async (date, fields) => {
+    if (!date || !localStorage.getItem("token")) return;
+    try {
+      const res = await apiGetJadwal(date);
+      const jadwal = Array.isArray(res) ? res : [];
+      const base = generateSlotsForFields(fields.length ? fields : fallbackFields);
+      const marked = markBookedSlots(base, jadwal);
+      setSlotList(marked);
+    } catch {
+      // keep existing slots
+    }
+  }, []);
+
+  useEffect(() => {
+    if (currentUser) {
+      loadFields();
+    }
+  }, [currentUser, loadFields]);
+
+  useEffect(() => {
+    if (!currentUser) {
+      setBookingList([]);
+      setCancellationList([]);
+      return;
+    }
+    const load = async () => {
+      setDataLoading(true);
+      const fields = fieldList.length ? fieldList : fallbackFields;
+      const bookings = await refreshBookings();
+      if (currentUser.role === "admin") {
+        await refreshCancellations();
+      }
+      await refreshSlots(fields, bookings);
+      setDataLoading(false);
+    };
+    load();
+  }, [currentUser, fieldList.length, refreshBookings, refreshCancellations, refreshSlots]);
+
+  const createBooking = async (payload) => {
+    const apiPayload = toApiBookingPayload({
+      lapanganId: payload.lapanganId || payload.fieldId,
+      date: payload.date,
+      startTime: payload.startTime,
+      endTime: payload.endTime,
+      duration: payload.duration || 1,
+      totalPrice: payload.totalPrice,
+    });
+    const res = await apiCreateBooking(apiPayload);
+    if (!res?.id && !res?.booking_code) {
+      throw new Error(res?.message || "Gagal membuat reservasi");
+    }
+    const booking = mapBookingFromApi(res);
+    setBookingList((prev) => {
+      const updated = [...prev, booking];
+      refreshSlots(fieldList, updated);
+      return updated;
+    });
+    return booking;
   };
 
-  const updateBooking = (id, changes) => {
-    const updated = bookingList.map((b) => (b.id === id ? { ...b, ...changes } : b));
-    setBookingList(updated);
-    persist("bookingList", updated);
+  const updateBookingLocal = (id, changes) => {
+    setBookingList((prev) => prev.map((b) => (b.id === id ? { ...b, ...changes } : b)));
   };
 
-  const deleteBooking = (id) => {
-    const updated = bookingList.filter((b) => b.id !== id);
-    setBookingList(updated);
-    persist("bookingList", updated);
+  const verifyPayment = async (id, action) => {
+    const res = await apiVerifyPayment(id, action);
+    if (res?.booking) {
+      const updated = mapBookingFromApi(res.booking);
+      setBookingList((prev) => prev.map((b) => (b.id === id ? updated : b)));
+    }
+    return res;
   };
 
-  const addCancellation = (cancellation) => {
-    const updated = [...cancellationList, cancellation];
-    setCancellationList(updated);
-    persist("cancellationList", updated);
+  const submitCancellation = async (bookingId, reason) => {
+    const res = await apiAjukanPembatalan(bookingId, reason);
+    await refreshBookings();
+    return res;
   };
 
-  const updateCancellation = (id, changes) => {
-    const updated = cancellationList.map((c) =>
-      c.id === id ? { ...c, ...changes } : c
-    );
-    setCancellationList(updated);
-    persist("cancellationList", updated);
+  const confirmCancellation = async (id, action) => {
+    const res = await apiKonfirmasiPembatalan(id, action);
+    await refreshBookings();
+    await refreshCancellations();
+    return res;
   };
 
-  const updateField = async (id, changes) => {
-    const res = await apiUpdateLapangan(id, changes);
-    const updatedField = res.data || res;
-    setFieldList((prev) => prev.map((f) => (f.id === id ? updatedField : f)));
-    return updatedField;
+  const extendBooking = async (id, { extraHours, extraPrice }) => {
+    const res = await apiExtendBooking(id, {
+      extra_hours: extraHours,
+      extra_price: extraPrice,
+    });
+    if (res?.booking) {
+      const updated = mapBookingFromApi(res.booking);
+      setBookingList((prev) => prev.map((b) => (b.id === id ? updated : b)));
+    }
+    return res;
   };
 
   const addField = async (field) => {
     const res = await apiAddLapangan(field);
-    const newField = res.data || res;
+    const newField = mapFieldFromApi(res.data || res);
     setFieldList((prev) => [...prev, newField]);
     return newField;
+  };
+
+  const updateField = async (id, changes) => {
+    const res = await apiUpdateLapangan(id, changes);
+    const updatedField = mapFieldFromApi(res.data || res);
+    setFieldList((prev) => prev.map((f) => (f.id === id ? updatedField : f)));
+    return updatedField;
   };
 
   const deleteField = async (id) => {
@@ -93,34 +197,41 @@ export function AppDataProvider({ children }) {
     setFieldList((prev) => prev.filter((f) => f.id !== id));
   };
 
-  const updateSlotStatus = (slotId, status) => {
-    const updated = slotList.map((s) => (s.id === slotId ? { ...s, status } : s));
-    setSlotList(updated);
-    persist("slotList", updated);
-  };
-
-  const blockSlot = (slotId) => updateSlotStatus(slotId, "Dipesan");
-
-  const releaseSlot = (slotId) => updateSlotStatus(slotId, "Tersedia");
+  const fetchStatistik = () => apiGetStatistik();
+  const fetchLaporan = (start, end) => apiGetLaporan(start, end);
 
   return (
     <AppDataContext.Provider
       value={{
         bookingList,
-        addBooking,
-        updateBooking,
-        deleteBooking,
         cancellationList,
-        addCancellation,
-        updateCancellation,
         fieldList,
+        slotList,
+        fieldLoading,
+        dataLoading,
+        createBooking,
+        updateBooking: updateBookingLocal,
+        refreshBookings,
+        refreshCancellations,
+        verifyPayment,
+        submitCancellation,
+        confirmCancellation,
+        extendBooking,
+        loadJadwalForDate,
+        refreshSlots,
         addField,
         updateField,
         deleteField,
-        slotList,
-        updateSlotStatus,
-        blockSlot,
-        releaseSlot,
+        fetchStatistik,
+        fetchLaporan,
+        // legacy aliases
+        addBooking: createBooking,
+        addCancellation: submitCancellation,
+        updateCancellation: () => {},
+        deleteBooking: () => {},
+        blockSlot: () => {},
+        releaseSlot: () => {},
+        updateSlotStatus: () => {},
       }}
     >
       {children}

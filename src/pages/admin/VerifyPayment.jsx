@@ -8,17 +8,17 @@ import { formatRupiah } from "../../data/seeder";
 const tabs = ["Semua", "Menunggu Verifikasi DP", "DP Sudah Dibayar", "Lunas"];
 
 function VerifyPayment() {
-  const { bookingList, updateBooking } = useAppData();
+  const { bookingList, verifyPayment } = useAppData();
   const [activeTab, setActiveTab] = useState("Menunggu Verifikasi DP");
   const [search, setSearch] = useState("");
+  const [loadingId, setLoadingId] = useState(null);
 
   const pendingBookings = useMemo(() => {
     let list = bookingList.filter(
       (b) =>
         b.paymentStatus === "Menunggu Verifikasi DP" ||
         b.paymentStatus === "DP Sudah Dibayar" ||
-        b.paymentStatus === "Lunas" ||
-        b.paymentStatus === "DP Terbayar"
+        b.paymentStatus === "Lunas"
     );
 
     if (activeTab !== "Semua") {
@@ -30,26 +30,44 @@ function VerifyPayment() {
       list = list.filter(
         (b) =>
           b.bookingCode?.toLowerCase().includes(q) ||
-          b.customerName?.toLowerCase().includes(q) ||
-          b.teamName?.toLowerCase().includes(q)
+          b.customerName?.toLowerCase().includes(q)
       );
     }
 
     return list.sort((a, b) => b.id - a.id);
   }, [bookingList, activeTab, search]);
 
-  const handleVerifyDP = (booking) => {
-    updateBooking(booking.id, {
-      paymentStatus: "DP Sudah Dibayar",
-      bookingStatus: "Dikonfirmasi",
-    });
+  const handleVerifyDP = async (booking) => {
+    setLoadingId(booking.id);
+    try {
+      await verifyPayment(booking.id, "approve");
+    } catch {
+      alert("Gagal verifikasi DP.");
+    } finally {
+      setLoadingId(null);
+    }
   };
 
-  const handleSettle = (booking) => {
-    updateBooking(booking.id, {
-      paymentStatus: "Lunas",
-      bookingStatus: "Selesai",
-    });
+  const handleSettle = async (booking) => {
+    setLoadingId(booking.id);
+    try {
+      await verifyPayment(booking.id, "settle");
+    } catch {
+      alert("Gagal mencatat pelunasan.");
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+  const handleComplete = async (booking) => {
+    setLoadingId(booking.id);
+    try {
+      await verifyPayment(booking.id, "complete");
+    } catch {
+      alert("Gagal menandai selesai.");
+    } finally {
+      setLoadingId(null);
+    }
   };
 
   return (
@@ -93,9 +111,7 @@ function VerifyPayment() {
               <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-bold text-brand-gold">{booking.bookingCode}</p>
-                  <p className="text-sm text-gray-400">
-                    {booking.teamName || booking.customerName}
-                  </p>
+                  <p className="text-sm text-gray-400">{booking.customerName}</p>
                 </div>
                 <StatusBadge status={booking.paymentStatus} />
               </div>
@@ -111,13 +127,8 @@ function VerifyPayment() {
                 </div>
                 <div className="rounded-xl border border-brand-border bg-brand-dark p-4">
                   <p className="text-gray-500">Pembayaran</p>
-                  <p className="mt-1 text-brand-gold">
-                    DP: {formatRupiah(booking.downPayment)}
-                  </p>
-                  <p className="text-gray-400">
-                    Sisa: {formatRupiah(booking.remainingPayment)}
-                  </p>
-                  <p className="mt-1 text-xs text-gray-500">{booking.paymentMethod}</p>
+                  <p className="mt-1 text-brand-gold">DP: {formatRupiah(booking.downPayment)}</p>
+                  <p className="text-gray-400">Sisa: {formatRupiah(booking.remainingPayment)}</p>
                 </div>
               </div>
 
@@ -126,21 +137,33 @@ function VerifyPayment() {
                   <button
                     type="button"
                     onClick={() => handleVerifyDP(booking)}
-                    className="btn-gold flex-1 text-sm"
+                    disabled={loadingId === booking.id}
+                    className="btn-gold flex-1 text-sm disabled:opacity-60"
                   >
-                    Verifikasi DP
+                    {loadingId === booking.id ? "Memproses..." : "Verifikasi DP"}
                   </button>
                 )}
                 {booking.paymentStatus === "DP Sudah Dibayar" && (
                   <button
                     type="button"
                     onClick={() => handleSettle(booking)}
-                    className="btn-gold flex-1 text-sm"
+                    disabled={loadingId === booking.id}
+                    className="btn-gold flex-1 text-sm disabled:opacity-60"
                   >
-                    Selesaikan Pelunasan
+                    {loadingId === booking.id ? "Memproses..." : "Catat Pelunasan"}
                   </button>
                 )}
-                {booking.paymentStatus === "Lunas" && (
+                {booking.paymentStatus === "Lunas" && booking.bookingStatus === "Dikonfirmasi" && (
+                  <button
+                    type="button"
+                    onClick={() => handleComplete(booking)}
+                    disabled={loadingId === booking.id}
+                    className="btn-gold flex-1 text-sm disabled:opacity-60"
+                  >
+                    {loadingId === booking.id ? "Memproses..." : "Tandai Selesai"}
+                  </button>
+                )}
+                {booking.bookingStatus === "Selesai" && (
                   <span className="flex-1 rounded-lg bg-green-500/10 py-2 text-center text-sm font-semibold text-green-400">
                     Lunas & Selesai
                   </span>

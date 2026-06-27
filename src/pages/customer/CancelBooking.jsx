@@ -7,61 +7,38 @@ import { formatRupiah } from "../../data/seeder";
 function CancelBooking() {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  const { bookingList, addCancellation, updateBooking } = useAppData();
+  const { bookingList, submitCancellation } = useAppData();
   const [selectedBookingId, setSelectedBookingId] = useState(null);
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Get bookings for current user with "Dikonfirmasi" status
   const userBookings = bookingList.filter(
     (b) => b.userId === currentUser?.id && b.bookingStatus === "Dikonfirmasi"
   );
 
   const selectedBooking = bookingList.find((b) => b.id === selectedBookingId);
 
-  const handleCancelBooking = () => {
+  const handleCancelBooking = async () => {
     if (!selectedBookingId) {
       alert("Pilih pesanan yang ingin dibatalkan terlebih dahulu.");
       return;
     }
 
-    if (!reason.trim()) {
-      alert("Alasan pembatalan harus diisi.");
+    if (reason.trim().length < 10) {
+      alert("Alasan pembatalan minimal 10 karakter.");
       return;
     }
 
     setLoading(true);
-    setTimeout(() => {
-      // Add to cancellationList
-      const cancellation = {
-        id: Date.now(),
-        bookingId: selectedBooking.id,
-        bookingCode: selectedBooking.bookingCode,
-        customerName: selectedBooking.customerName,
-        phone: selectedBooking.phone,
-        fieldName: selectedBooking.fieldName,
-        date: selectedBooking.date,
-        startTime: selectedBooking.startTime,
-        endTime: selectedBooking.endTime,
-        totalPrice: selectedBooking.totalPrice,
-        downPayment: selectedBooking.downPayment,
-        reason,
-        cancelledBy: "Customer",
-        cancelledAt: new Date().toLocaleString("id-ID"),
-        refundStatus: "Tidak Ada Refund",
-      };
-
-      addCancellation(cancellation);
-
-      // Update booking status
-      updateBooking(selectedBooking.id, {
-        bookingStatus: "Menunggu Konfirmasi Pembatalan",
-      });
-
-      setLoading(false);
+    try {
+      await submitCancellation(selectedBooking.id, reason);
       alert("Pengajuan pembatalan berhasil dikirim! Silakan tunggu konfirmasi dari admin.");
       navigate("/customer/history");
-    }, 500);
+    } catch {
+      alert("Gagal mengajukan pembatalan. Coba lagi.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -72,9 +49,7 @@ function CancelBooking() {
 
       <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-6 text-center">
         <div className="mx-auto w-fit text-3xl">⚠️</div>
-        <h2 className="mt-4 text-xl font-bold text-brand-dark">
-          Perhatian!
-        </h2>
+        <h2 className="mt-4 text-xl font-bold text-brand-dark">Perhatian!</h2>
         <p className="mt-2 text-sm text-gray-600">
           Pembatalan akan masuk ke antrian konfirmasi admin. DP yang sudah
           dibayarkan tidak dapat dikembalikan.
@@ -82,10 +57,10 @@ function CancelBooking() {
       </div>
 
       {userBookings.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-lg">
+        <div className="rounded-lg bg-white py-12 text-center">
           <p className="text-gray-500">
             Tidak ada pesanan yang dapat dibatalkan. Hanya pesanan dengan status
-            "Dikonfirmasi" yang dapat dibatalkan.
+            &quot;Dikonfirmasi&quot; yang dapat dibatalkan.
           </p>
           <button
             onClick={() => navigate("/customer/history")}
@@ -97,14 +72,12 @@ function CancelBooking() {
       ) : (
         <div className="space-y-6">
           <div className="rounded-xl bg-white p-5 shadow-sm">
-            <h3 className="mb-3 font-semibold text-brand-dark">
-              Pilih Pesanan untuk Dibatalkan
-            </h3>
+            <h3 className="mb-3 font-semibold text-brand-dark">Pilih Pesanan untuk Dibatalkan</h3>
             <div className="space-y-3">
               {userBookings.map((booking) => (
                 <label
                   key={booking.id}
-                  className={`flex items-start gap-3 rounded-lg border-2 p-4 cursor-pointer transition-all ${
+                  className={`flex cursor-pointer items-start gap-3 rounded-lg border-2 p-4 transition-all ${
                     selectedBookingId === booking.id
                       ? "border-brand-gold bg-brand-gold/5"
                       : "border-gray-200 hover:border-gray-300"
@@ -136,27 +109,20 @@ function CancelBooking() {
 
           {selectedBooking && (
             <div className="rounded-xl bg-white p-5 shadow-sm">
-              <h3 className="mb-4 font-semibold text-brand-dark">
-                Detail Pesanan
-              </h3>
+              <h3 className="mb-4 font-semibold text-brand-dark">Detail Pesanan</h3>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">ID Transaksi</span>
-                  <span className="font-semibold">
-                    {selectedBooking.bookingCode}
-                  </span>
+                  <span className="font-semibold">{selectedBooking.bookingCode}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Lapangan</span>
-                  <span className="font-semibold">
-                    {selectedBooking.fieldName}
-                  </span>
+                  <span className="font-semibold">{selectedBooking.fieldName}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Jadwal</span>
                   <span className="font-semibold">
-                    {selectedBooking.date} | {selectedBooking.startTime} -
-                    {selectedBooking.endTime}
+                    {selectedBooking.date} | {selectedBooking.startTime} - {selectedBooking.endTime}
                   </span>
                 </div>
                 <div className="flex justify-between border-t border-gray-200 pt-3">
@@ -176,13 +142,10 @@ function CancelBooking() {
             <textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Tuliskan alasan pembatalan Anda di sini..."
+              placeholder="Tuliskan alasan pembatalan Anda di sini (min. 10 karakter)..."
               rows="4"
               className="h-24 w-full resize-none rounded-lg border border-gray-300 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold"
             />
-            <p className="mt-2 text-xs text-gray-500">
-              Alasan pembatalan akan membantu kami meningkatkan layanan.
-            </p>
 
             <div className="mt-4 flex gap-3">
               <button

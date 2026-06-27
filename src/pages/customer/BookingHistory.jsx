@@ -11,11 +11,11 @@ import { FILTER_TABS, filterByReservationStatus } from "../../utils/reservationS
 
 function BookingHistory() {
   const { currentUser } = useAuth();
-  const { bookingList, updateBooking, addCancellation, blockSlot } = useAppData();
+  const { bookingList, submitCancellation, extendBooking, refreshBookings } = useAppData();
 
   const [activeFilter, setActiveFilter] = useState("Semua");
   const [selectedBooking, setSelectedBooking] = useState(null);
-  const [modal, setModal] = useState(null); // 'detail' | 'cancel' | 'duration' | 'pay'
+  const [modal, setModal] = useState(null);
 
   const userBookings = useMemo(
     () =>
@@ -40,61 +40,34 @@ function BookingHistory() {
     setModal(type);
   };
 
-  const handleCancelSubmit = (reason) => {
+  const handleCancelSubmit = async (reason) => {
     if (!selectedBooking) return;
-
-    addCancellation({
-      id: Date.now(),
-      bookingId: selectedBooking.id,
-      bookingCode: selectedBooking.bookingCode,
-      customerName: selectedBooking.customerName,
-      phone: selectedBooking.phone,
-      fieldName: selectedBooking.fieldName,
-      date: selectedBooking.date,
-      startTime: selectedBooking.startTime,
-      endTime: selectedBooking.endTime,
-      totalPrice: selectedBooking.totalPrice,
-      downPayment: selectedBooking.downPayment,
-      reason,
-      cancelledBy: "Customer",
-      cancelledAt: new Date().toLocaleString("id-ID"),
-      refundStatus: "Tidak Ada Refund",
-    });
-
-    updateBooking(selectedBooking.id, {
-      bookingStatus: "Menunggu Konfirmasi Pembatalan",
-    });
+    try {
+      await submitCancellation(selectedBooking.id, reason);
+      await refreshBookings();
+      closeModal();
+    } catch {
+      alert("Gagal mengajukan pembatalan. Pastikan alasan minimal 10 karakter.");
+    }
   };
 
-  const handlePayDP = ({ paymentMethod, paymentStatus }) => {
-    if (!selectedBooking) return;
-    updateBooking(selectedBooking.id, {
-      paymentMethod,
-      paymentStatus,
-      bookingStatus: "Pending",
-    });
+  const handlePayDP = async () => {
+    await refreshBookings();
+    closeModal();
   };
 
-  const handleAddDuration = ({ extraSlots, extraTotal, extraDP, paymentMethod }) => {
-    if (!selectedBooking || extraSlots.length === 0) return;
-
-    const lastSlot = extraSlots[extraSlots.length - 1];
-    const newDuration = selectedBooking.duration + extraSlots.length;
-    const newTotal = selectedBooking.totalPrice + extraTotal;
-    const newDP = selectedBooking.downPayment + extraDP;
-    const newRemaining = newTotal - newDP;
-
-    updateBooking(selectedBooking.id, {
-      endTime: lastSlot.endTime,
-      duration: newDuration,
-      totalPrice: newTotal,
-      downPayment: newDP,
-      remainingPayment: newRemaining,
-      paymentMethod,
-      paymentStatus: "Menunggu Verifikasi DP",
-    });
-
-    extraSlots.forEach((slot) => blockSlot(slot.id));
+  const handleAddDuration = async ({ extraHours, extraTotal }) => {
+    if (!selectedBooking || extraHours < 1) return;
+    try {
+      await extendBooking(selectedBooking.id, {
+        extraHours,
+        extraPrice: extraTotal,
+      });
+      await refreshBookings();
+      closeModal();
+    } catch {
+      alert("Gagal menambah durasi. Slot mungkin sudah terisi.");
+    }
   };
 
   return (
@@ -104,7 +77,6 @@ function BookingHistory() {
         subtitle="SKPL-KF-07 — Kelola dan pantau semua reservasi Anda"
       />
 
-      {/* Filter tabs — scrollable on mobile */}
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
         {FILTER_TABS.map((status) => (
           <button
@@ -142,11 +114,7 @@ function BookingHistory() {
         </div>
       )}
 
-      <BookingDetailModal
-        open={modal === "detail"}
-        onClose={closeModal}
-        booking={selectedBooking}
-      />
+      <BookingDetailModal open={modal === "detail"} onClose={closeModal} booking={selectedBooking} />
 
       <CancellationModal
         open={modal === "cancel"}

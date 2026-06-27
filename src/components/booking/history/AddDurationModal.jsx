@@ -7,7 +7,7 @@ import PaymentMethodPicker, {
 import { useAppData } from "../../../context/AppDataContext";
 import { formatRupiah } from "../../../data/seeder";
 import { DP_PERCENTAGE } from "../../../utils/bookingHelpers";
-import { getConsecutiveAvailableSlots } from "../../../utils/reservationStatus";
+import { getConsecutiveSlotsAfter } from "../../../utils/slotHelpers";
 
 function AddDurationModal({ open, onClose, booking, onConfirm }) {
   const { slotList } = useAppData();
@@ -17,7 +17,7 @@ function AddDurationModal({ open, onClose, booking, onConfirm }) {
   const [loading, setLoading] = useState(false);
 
   const consecutiveSlots = useMemo(
-    () => (booking ? getConsecutiveAvailableSlots(slotList, booking) : []),
+    () => (booking ? getConsecutiveSlotsAfter(slotList, booking, 5) : []),
     [slotList, booking]
   );
 
@@ -32,19 +32,22 @@ function AddDurationModal({ open, onClose, booking, onConfirm }) {
     onClose();
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (selectedSlots.length === 0) return;
     setLoading(true);
-    setTimeout(() => {
-      onConfirm({
-        extraSlots: selectedSlots,
+    try {
+      await onConfirm({
+        extraHours,
         extraTotal,
         extraDP,
         paymentMethod: getPaymentMethodLabel(selectedMethod),
       });
-      setLoading(false);
       setStep("success");
-    }, 700);
+    } catch {
+      alert("Gagal menambah durasi.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!booking) return null;
@@ -58,7 +61,7 @@ function AddDurationModal({ open, onClose, booking, onConfirm }) {
           </div>
           <h4 className="text-lg font-bold text-brand-gold">Durasi Berhasil Ditambahkan</h4>
           <p className="mt-2 text-sm text-gray-400">
-            +{extraHours} jam • DP {formatRupiah(extraDP)} menunggu verifikasi.
+            +{extraHours} jam • DP tambahan {formatRupiah(extraDP)} menunggu verifikasi.
           </p>
           <button type="button" onClick={handleClose} className="btn-gold mt-6 w-full">
             Tutup
@@ -79,9 +82,6 @@ function AddDurationModal({ open, onClose, booking, onConfirm }) {
             Reservasi saat ini: {booking.startTime} - {booking.endTime} ({booking.duration} jam)
           </p>
 
-          <label className="mb-2 block text-sm font-medium text-gray-300">
-            Tambah Durasi (jam berurutan)
-          </label>
           <div className="mb-4 flex flex-wrap gap-2">
             {consecutiveSlots.map((slot, idx) => {
               const hours = idx + 1;
@@ -104,17 +104,7 @@ function AddDurationModal({ open, onClose, booking, onConfirm }) {
           </div>
 
           <div className="mb-4 rounded-xl border border-brand-border bg-brand-card p-4 text-sm">
-            <div className="flex justify-between text-gray-400">
-              <span>Slot tambahan</span>
-              <span className="text-white">
-                {selectedSlots.map((s) => s.startTime).join(", ")}
-              </span>
-            </div>
-            <div className="mt-2 flex justify-between text-gray-400">
-              <span>Total tambahan</span>
-              <span className="text-brand-gold">{formatRupiah(extraTotal)}</span>
-            </div>
-            <div className="mt-2 flex justify-between font-semibold text-white">
+            <div className="flex justify-between font-semibold text-white">
               <span>DP 50% tambahan</span>
               <span className="text-brand-gold">{formatRupiah(extraDP)}</span>
             </div>

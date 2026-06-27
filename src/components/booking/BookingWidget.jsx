@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { additionalServices, fields, formatRupiah } from "../../data/seeder";
+import { additionalServices, formatRupiah } from "../../data/seeder";
 import { useAppData } from "../../context/AppDataContext";
 import { calculatePricing } from "../../utils/bookingHelpers";
 import CheckoutModal from "./CheckoutModal";
 
 function BookingWidget({ id = "booking-widget" }) {
-  const { slotList } = useAppData();
-  const [selectedFieldId, setSelectedFieldId] = useState(fields[0]?.id || null);
+  const { slotList, fieldList } = useAppData();
+  const [selectedFieldId, setSelectedFieldId] = useState(fieldList[0]?.id || null);
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedSlotId, setSelectedSlotId] = useState(null);
   const [selectedServices, setSelectedServices] = useState([]);
@@ -34,6 +34,12 @@ function BookingWidget({ id = "booking-widget" }) {
         .sort((a, b) => a.startTime.localeCompare(b.startTime)),
     [selectedFieldId, selectedDate, slotList]
   );
+
+  useEffect(() => {
+    if (fieldList.length && !selectedFieldId) {
+      setSelectedFieldId(fieldList[0].id);
+    }
+  }, [fieldList, selectedFieldId]);
 
   useEffect(() => {
     setSelectedSlotId((c) =>
@@ -83,7 +89,7 @@ function BookingWidget({ id = "booking-widget" }) {
             }}
             className="premium-select"
           >
-            {fields.map((f) => (
+            {fieldList.map((f) => (
               <option key={f.id} value={f.id}>
                 {f.name}
               </option>

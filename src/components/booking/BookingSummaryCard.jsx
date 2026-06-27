@@ -1,4 +1,5 @@
-import { additionalServices, fields, formatRupiah } from "../../data/seeder";
+import { additionalServices, formatRupiah } from "../../data/seeder";
+import { useAppData } from "../../context/AppDataContext";
 
 function BookingSummaryCard({
   selectedFieldId,
@@ -11,6 +12,7 @@ function BookingSummaryCard({
   showNote = true,
   dark = false,
 }) {
+  const { fieldList } = useAppData();
   const serviceTotal = additionalServices
     .filter((s) => selectedServices.includes(s.id))
     .reduce((sum, s) => sum + s.price, 0);
@@ -26,7 +28,7 @@ function BookingSummaryCard({
         <div className="flex justify-between">
           <span>Lapangan</span>
           <span className={valueClass}>
-            {fields.find((f) => f.id === selectedFieldId)?.name || "-"}
+            {fieldList.find((f) => f.id === selectedFieldId)?.name || "-"}
           </span>
         </div>
         <div className="flex justify-between">

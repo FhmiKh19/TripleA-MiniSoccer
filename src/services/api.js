@@ -82,11 +82,34 @@ export const apiCreateBooking = (data) =>
     body: JSON.stringify(data),
   }).then(handleResponse);
 
-export const apiVerifyPayment = (id) =>
+export const apiVerifyPayment = (id, action) =>
   fetch(`${BASE_URL}/booking/${id}/verify`, {
     method: 'PATCH',
     headers: getHeaders(),
+    body: JSON.stringify({ action }),
   }).then(handleResponse);
+
+export const apiExtendBooking = (id, data) =>
+  fetch(`${BASE_URL}/booking/${id}/extend`, {
+    method: 'PATCH',
+    headers: getHeaders(),
+    body: JSON.stringify(data),
+  }).then(handleResponse);
+
+export const apiPaymentUpload = (bookingId, file) => {
+  const formData = new FormData();
+  formData.append('booking_id', bookingId);
+  formData.append('payment_proof', file);
+  const token = localStorage.getItem('token');
+  return fetch(`${BASE_URL}/payment/upload`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+    body: formData,
+  }).then(handleResponse);
+};
 
 export const apiGetJadwal = (date) =>
   fetch(`${BASE_URL}/jadwal?date=${date}`, { headers: getHeaders() }).then(handleResponse);

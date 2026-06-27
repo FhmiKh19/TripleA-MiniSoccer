@@ -3,15 +3,16 @@ import { useNavigate } from "react-router-dom";
 import StatusBadge from "../../components/ui/StatusBadge";
 import SlotBadge from "../../components/ui/SlotBadge";
 import TimeSlotGrid from "../../components/ui/TimeSlotGrid";
-import { fields } from "../../data/seeder";
+import { useAppData } from "../../context/AppDataContext";
 
 const datePills = ["Hari Ini", "Besok", "Sel 15/5", "Rab 16/5", "Kam 17/5", "Jum 18/5", "Sab 19/5"];
 
 function FieldDetail() {
   const navigate = useNavigate();
+  const { fieldList } = useAppData();
   const [activeDate, setActiveDate] = useState("Hari Ini");
   const [selectedSlot, setSelectedSlot] = useState("18:00");
-  const field = fields[0] || { name: "Lapangan A", status: "Tersedia", description: "", facilities: [] };
+  const field = fieldList[0] || { name: "Lapangan A", status: "Tersedia", description: "", facilities: [] };
 
   return (
     <div>
