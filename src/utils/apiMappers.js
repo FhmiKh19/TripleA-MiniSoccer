@@ -50,7 +50,7 @@ export function mapFieldFromApi(f) {
     id: f.id,
     name: f.name,
     type: f.type,
-    status: f.status,
+    status: f.status === 'Tidak Tersedia' ? 'Nonaktif' : f.status,
     image: f.image,
     description: f.description,
     facilities: f.facilities || [],

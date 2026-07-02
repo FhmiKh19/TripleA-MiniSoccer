@@ -60,16 +60,32 @@ export function generateSlotsForFields(fields, daysAhead = 14) {
   return slots;
 }
 
+// Status booking yang dianggap TIDAK mengunci slot (slot kembali tersedia)
+const CANCELLED_STATUSES = new Set([
+  "Dibatalkan",
+  "Cancelled",
+  "cancelled",
+  "dibatalkan",
+]);
+
 export function markBookedSlots(slots, bookings) {
   if (!bookings?.length) return slots;
 
+  // Hanya booking yang AKTIF (bukan dibatalkan) yang mengunci slot
+  const activeBookings = bookings.filter((b) => {
+    const bookingStatus = b.booking_status || b.bookingStatus || "";
+    const status        = b.status || "";
+    return !CANCELLED_STATUSES.has(bookingStatus) && !CANCELLED_STATUSES.has(status);
+  });
+
+  if (!activeBookings.length) return slots;
+
   return slots.map((slot) => {
-    const booked = bookings.some((b) => {
+    const booked = activeBookings.some((b) => {
       if (b.lapangan_id !== slot.fieldId && b.fieldId !== slot.fieldId) return false;
-      const bDate = b.date;
-      if (bDate !== slot.date) return false;
+      if (b.date !== slot.date) return false;
       const bStart = (b.start_time || b.startTime || "").slice(0, 5);
-      const bEnd = (b.end_time || b.endTime || "").slice(0, 5);
+      const bEnd   = (b.end_time   || b.endTime   || "").slice(0, 5);
       return slot.startTime >= bStart && slot.startTime < bEnd;
     });
     return booked ? { ...slot, status: "Dipesan" } : slot;

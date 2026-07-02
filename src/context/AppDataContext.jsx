@@ -155,14 +155,20 @@ export function AppDataProvider({ children }) {
 
   const submitCancellation = async (bookingId, reason) => {
     const res = await apiAjukanPembatalan(bookingId, reason);
-    await refreshBookings();
+    const updatedBookings = await refreshBookings();
+    // Update slots supaya sinkron dengan status booking terbaru
+    const fields = fieldList.length ? fieldList : fallbackFields;
+    await refreshSlots(fields, updatedBookings);
     return res;
   };
 
   const confirmCancellation = async (id, action) => {
     const res = await apiKonfirmasiPembatalan(id, action);
-    await refreshBookings();
+    const updatedBookings = await refreshBookings();   // dapatkan list terbaru
     await refreshCancellations();
+    // Bebaskan slot dari booking yang sudah dibatalkan
+    const fields = fieldList.length ? fieldList : fallbackFields;
+    await refreshSlots(fields, updatedBookings);
     return res;
   };
 
@@ -178,15 +184,15 @@ export function AppDataProvider({ children }) {
     return res;
   };
 
-  const addField = async (field) => {
-    const res = await apiAddLapangan(field);
+  const addField = async (field, imageFile = null) => {
+    const res = await apiAddLapangan(field, imageFile);
     const newField = mapFieldFromApi(res.data || res);
     setFieldList((prev) => [...prev, newField]);
     return newField;
   };
 
-  const updateField = async (id, changes) => {
-    const res = await apiUpdateLapangan(id, changes);
+  const updateField = async (id, changes, imageFile = null) => {
+    const res = await apiUpdateLapangan(id, changes, imageFile);
     const updatedField = mapFieldFromApi(res.data || res);
     setFieldList((prev) => prev.map((f) => (f.id === id ? updatedField : f)));
     return updatedField;

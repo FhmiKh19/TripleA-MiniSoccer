@@ -1,47 +1,62 @@
 import { formatRupiah } from "../../data/seeder";
+import { paymentAccounts, getPaymentAccountLabel } from "../../constants/paymentAccounts";
 
-export const mockPaymentMethods = [
-  { id: "qris", name: "QRIS", shortLabel: "QR", accent: "bg-brand-gold text-brand-dark" },
-  { id: "gopay", name: "GoPay", shortLabel: "GP", accent: "bg-green-600 text-white" },
-  { id: "transfer", name: "Transfer Bank", shortLabel: "TF", accent: "bg-brand-dark text-brand-gold border border-brand-gold" },
-];
+export const mockPaymentMethods = paymentAccounts;
 
-function PaymentMethodPicker({ selectedMethod, onSelect, dpAmount, dark = false }) {
+// Icon map per payment method
+const methodIconMap = {
+  gopay:       { emoji: "GP", color: "#00AED6", bg: "rgba(0,174,214,0.12)", border: "rgba(0,174,214,0.25)" },
+  dana:        { emoji: "DN", color: "#2F80ED", bg: "rgba(47,128,237,0.12)", border: "rgba(47,128,237,0.25)" },
+  bri:         { emoji: "BRI",color: "#F4811F", bg: "rgba(244,129,31,0.12)", border: "rgba(244,129,31,0.25)" },
+  bca:         { emoji: "BCA",color: "#0066AE", bg: "rgba(0,102,174,0.12)", border: "rgba(0,102,174,0.25)" },
+  mandiri:     { emoji: "MDR",color: "#006633", bg: "rgba(0,102,51,0.12)",  border: "rgba(0,102,51,0.25)" },
+  ovo:         { emoji: "OVO",color: "#7B2BE2", bg: "rgba(123,43,226,0.12)",border: "rgba(123,43,226,0.25)" },
+};
+
+function PaymentMethodPicker({ selectedMethod, onSelect, dpAmount }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {mockPaymentMethods.map((method) => {
+    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      {paymentAccounts.map((method) => {
         const active = selectedMethod === method.id;
+        const icon = methodIconMap[method.id] || { emoji: method.shortLabel, color: "#F0A500", bg: "rgba(240,165,0,0.12)", border: "rgba(240,165,0,0.25)" };
+
         return (
           <button
             key={method.id}
             type="button"
             onClick={() => onSelect(method.id)}
-            className={`relative rounded-xl border p-4 text-left transition-all duration-200 ${
-              active
-                ? "border-brand-gold bg-brand-gold/10"
-                : dark
-                ? "border-brand-border bg-brand-card hover:border-brand-gold"
-                : "border-gray-200 hover:border-brand-gold"
-            }`}
+            className="relative rounded-2xl p-3.5 text-left transition-all duration-200"
+            style={{
+              background: active
+                ? `linear-gradient(135deg, ${icon.bg}, rgba(255,255,255,0.02))`
+                : "rgba(255,255,255,0.03)",
+              border: `1px solid ${active ? icon.border : "rgba(255,255,255,0.06)"}`,
+              boxShadow: active ? `0 0 20px ${icon.bg}` : "none",
+            }}
           >
+            {/* Active indicator */}
+            {active && (
+              <div
+                className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black"
+                style={{ background: "linear-gradient(135deg, #F0A500, #FFD166)", color: "#080C14" }}
+              >
+                ✓
+              </div>
+            )}
+
             <div className="flex items-center gap-3">
-              <span
-                className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-black ${method.accent}`}
+              {/* Icon */}
+              <div
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xs font-black"
+                style={{ background: icon.bg, border: `1px solid ${icon.border}`, color: icon.color }}
               >
                 {method.shortLabel}
-              </span>
-              <div>
-                <p className={`font-bold ${dark ? "text-white" : "text-brand-dark"}`}>
-                  {method.name}
-                </p>
-                <p className="text-xs text-gray-500">DP {formatRupiah(dpAmount)}</p>
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-bold text-white">{method.name}</p>
+                <p className="text-xs text-slate-500">DP {formatRupiah(dpAmount)}</p>
               </div>
             </div>
-            {active && (
-              <span className="absolute right-3 top-3 text-xs font-bold text-brand-gold">
-                Dipilih
-              </span>
-            )}
           </button>
         );
       })}
@@ -50,7 +65,7 @@ function PaymentMethodPicker({ selectedMethod, onSelect, dpAmount, dark = false 
 }
 
 export function getPaymentMethodLabel(methodId) {
-  return mockPaymentMethods.find((m) => m.id === methodId)?.name || "-";
+  return getPaymentAccountLabel(methodId);
 }
 
 export default PaymentMethodPicker;

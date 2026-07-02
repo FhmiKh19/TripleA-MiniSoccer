@@ -1,18 +1,28 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { getHomePathForRole } from "../utils/authHelpers";
+
+function AuthLoading() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-white">
+      <p className="text-sm text-gray-500">Memuat sesi...</p>
+    </div>
+  );
+}
 
 function ProtectedRoute({ children, allowedRoles }) {
-  const { currentUser } = useAuth();
+  const { currentUser, authLoading } = useAuth();
+
+  if (authLoading) {
+    return <AuthLoading />;
+  }
 
   if (!currentUser) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/login" replace />;
   }
 
   if (allowedRoles && !allowedRoles.includes(currentUser.role)) {
-    // Redirect ke halaman yang sesuai role-nya
-    if (currentUser.role === "admin") return <Navigate to="/admin" />;
-    if (currentUser.role === "owner") return <Navigate to="/owner" />;
-    return <Navigate to="/customer" />;
+    return <Navigate to={getHomePathForRole(currentUser.role)} replace />;
   }
 
   return children;

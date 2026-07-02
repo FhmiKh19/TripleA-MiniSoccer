@@ -1,30 +1,41 @@
-const statusClassMap = {
-  disetujui: "badge-success",
-  aktif: "badge-success",
-  tersedia: "badge-success",
-  lunas: "badge-success",
-  selesai: "badge-success",
-  dijadwalkan: "badge-info",
-  dikonfirmasi: "badge-info",
-  "reservasi aktif": "badge-info",
-  "menunggu konfirmasi pembatalan": "badge-warning",
-  "dp sudah dibayar": "badge-info",
-  "dp terbayar": "badge-info",
-  "menunggu verifikasi dp": "badge-warning",
-  pending: "badge-warning",
-  "menunggu pembayaran": "badge-warning",
-  ditolak: "badge-error",
-  dibatalkan: "badge-outline badge-error",
-  dipesan: "badge-error",
-  maintenance: "badge-secondary",
+const statusMap = {
+  // Green / success
+  "lunas":                              { cls: "badge-green", dot: "#34D399", icon: "✓" },
+  "selesai":                            { cls: "badge-green", dot: "#34D399", icon: "✓" },
+  "disetujui":                          { cls: "badge-green", dot: "#34D399", icon: "✓" },
+  "aktif":                              { cls: "badge-green", dot: "#34D399", icon: "●" },
+  "tersedia":                           { cls: "badge-green", dot: "#34D399", icon: "●" },
+
+  // Blue / info
+  "dp sudah dibayar":                   { cls: "badge-blue", dot: "#60A5FA", icon: "✓" },
+  "dp terbayar":                        { cls: "badge-blue", dot: "#60A5FA", icon: "✓" },
+  "dikonfirmasi":                       { cls: "badge-blue", dot: "#60A5FA", icon: "●" },
+  "dijadwalkan":                        { cls: "badge-blue", dot: "#60A5FA", icon: "●" },
+  "reservasi aktif":                    { cls: "badge-blue", dot: "#60A5FA", icon: "●" },
+
+  // Gold / warning
+  "menunggu verifikasi dp":             { cls: "badge-gold", dot: "#F0A500", icon: "⏳" },
+  "menunggu pembayaran":                { cls: "badge-gold", dot: "#F0A500", icon: "⏳" },
+  "pending":                            { cls: "badge-gold", dot: "#F0A500", icon: "⏳" },
+  "menunggu konfirmasi pembatalan":     { cls: "badge-gold", dot: "#F0A500", icon: "⏳" },
+
+  // Red / error
+  "ditolak":                            { cls: "badge-red", dot: "#F87171", icon: "✗" },
+  "dibatalkan":                         { cls: "badge-red", dot: "#F87171", icon: "✗" },
+  "dipesan":                            { cls: "badge-red", dot: "#F87171", icon: "●" },
+
+  // Gray
+  "maintenance":                        { cls: "badge-gray", dot: "#94A3B8", icon: "⚙" },
 };
 
 function StatusBadge({ status }) {
-  const normalized = status.toLowerCase();
-  const className = statusClassMap[normalized] || "badge badge-outline badge-info";
+  if (!status) return null;
+  const key = status.toLowerCase();
+  const cfg = statusMap[key] || { cls: "badge-gray", dot: "#94A3B8", icon: "●" };
 
   return (
-    <span className={`badge ${className} text-sm font-semibold`}>
+    <span className={cfg.cls} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+      <span style={{ color: cfg.dot, fontSize: '8px' }}>●</span>
       {status}
     </span>
   );

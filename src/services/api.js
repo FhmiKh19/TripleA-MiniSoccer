@@ -41,23 +41,73 @@ export const apiLogout = () =>
     headers: getHeaders(),
   }).then(handleResponse);
 
+export const apiMe = async () => {
+  const response = await fetch(`${BASE_URL}/me`, { headers: getHeaders() });
+  if (response.status === 401) return null;
+  return handleResponse(response);
+};
+
 // LAPANGAN
+const getAuthHeaders = (multipart = false) => ({
+  Accept: 'application/json',
+  ...(localStorage.getItem('token') && {
+    Authorization: `Bearer ${localStorage.getItem('token')}`,
+  }),
+  ...(!multipart && { 'Content-Type': 'application/json' }),
+});
+
+const normalizeFieldStatus = (status) =>
+  status === 'Nonaktif' ? 'Tidak Tersedia' : status;
+
+const buildLapanganFormData = (data, imageFile) => {
+  const formData = new FormData();
+  if (data.name) formData.append('name', data.name);
+  if (data.type) formData.append('type', data.type);
+  if (data.status) formData.append('status', normalizeFieldStatus(data.status));
+  if (data.description != null) formData.append('description', data.description);
+  (data.facilities || []).forEach((facility, index) => {
+    formData.append(`facilities[${index}]`, facility);
+  });
+  if (imageFile) formData.append('image', imageFile);
+  return formData;
+};
+
 export const apiGetLapangan = () =>
   fetch(`${BASE_URL}/lapangan`, { headers: getHeaders() }).then(handleResponse);
 
-export const apiAddLapangan = (data) =>
-  fetch(`${BASE_URL}/lapangan`, {
+export const apiAddLapangan = (data, imageFile = null) => {
+  if (imageFile) {
+    return fetch(`${BASE_URL}/lapangan`, {
+      method: 'POST',
+      headers: getAuthHeaders(true),
+      body: buildLapanganFormData(data, imageFile),
+    }).then(handleResponse);
+  }
+
+  return fetch(`${BASE_URL}/lapangan`, {
     method: 'POST',
     headers: getHeaders(),
-    body: JSON.stringify(data),
+    body: JSON.stringify({ ...data, status: normalizeFieldStatus(data.status) }),
   }).then(handleResponse);
+};
 
-export const apiUpdateLapangan = (id, data) =>
-  fetch(`${BASE_URL}/lapangan/${id}`, {
+export const apiUpdateLapangan = (id, data, imageFile = null) => {
+  if (imageFile) {
+    const formData = buildLapanganFormData(data, imageFile);
+    formData.append('_method', 'PUT');
+    return fetch(`${BASE_URL}/lapangan/${id}`, {
+      method: 'POST',
+      headers: getAuthHeaders(true),
+      body: formData,
+    }).then(handleResponse);
+  }
+
+  return fetch(`${BASE_URL}/lapangan/${id}`, {
     method: 'PUT',
     headers: getHeaders(),
-    body: JSON.stringify(data),
+    body: JSON.stringify({ ...data, status: data.status ? normalizeFieldStatus(data.status) : undefined }),
   }).then(handleResponse);
+};
 
 export const apiDeleteLapangan = (id) =>
   fetch(`${BASE_URL}/lapangan/${id}`, {

@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
+import HomeRedirect from "./components/HomeRedirect";
 import AdminLayout from "./components/layout/AdminLayout";
 import OwnerLayout from "./components/layout/OwnerLayout";
 import CustomerLayout from "./components/layout/CustomerLayout";
@@ -24,7 +25,7 @@ import PaymentMock from "./pages/customer/PaymentMock";
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="/" element={<HomeRedirect />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
