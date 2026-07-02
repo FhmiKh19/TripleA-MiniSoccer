@@ -5,7 +5,7 @@ import { useAppData } from "../../context/AppDataContext";
 import { generateSlotsForFields } from "../../utils/slotHelpers";
 
 function BookingSchedule() {
-  const { fieldList, loadJadwalForDate, bookingList } = useAppData();
+  const { fieldList, loadJadwalForDate, slotList } = useAppData();
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [daySlots, setDaySlots] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -25,27 +25,9 @@ function BookingSchedule() {
   }, [selectedDate, fieldList, loadJadwalForDate]);
 
   useEffect(() => {
-    const base = generateSlotsForFields(fieldList, 14);
-    const dayBookings = bookingList.filter((b) => b.date === selectedDate);
-    const booked = dayBookings.map((b) => ({
-      lapangan_id: b.fieldId,
-      date: b.date,
-      start_time: b.startTime,
-      end_time: b.endTime,
-    }));
-    const slots = base
-      .filter((s) => s.date === selectedDate)
-      .map((s) => {
-        const isBooked = booked.some(
-          (b) =>
-            b.lapangan_id === s.fieldId &&
-            s.startTime >= b.start_time &&
-            s.startTime < b.end_time
-        );
-        return isBooked ? { ...s, status: "Dipesan" } : s;
-      });
+    const slots = slotList.filter((s) => s.date === selectedDate);
     setDaySlots(slots);
-  }, [selectedDate, fieldList, bookingList]);
+  }, [selectedDate, slotList]);
 
   const stats = useMemo(() => ({
     tersedia: daySlots.filter((s) => s.status === "Tersedia").length,
